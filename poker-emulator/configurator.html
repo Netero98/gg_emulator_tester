@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Creator - Создание нового теста</title>
+    <title>Test Creator - Создание нового теста (Cloud)</title>
     <style>
         * {
             margin: 0;
@@ -32,6 +32,29 @@
         .subtitle {
             color: #888;
             margin-bottom: 20px;
+        }
+        
+        /* Instructions */
+        .instructions {
+            background: rgba(0, 255, 0, 0.05);
+            border: 1px solid rgba(0, 255, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions strong {
+            color: #00ff00;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+            color: #ccc;
         }
         
         /* Test Setup Section */
@@ -77,6 +100,17 @@
             resize: vertical;
         }
         
+        .url-preview {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #00ffff;
+        }
+        
         /* Street Selector */
         .street-tabs {
             display: flex;
@@ -117,7 +151,7 @@
             gap: 20px;
         }
         
-        /* Image Area */
+        /* Image Section */
         .image-section {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
@@ -127,9 +161,23 @@
         .image-toolbar {
             padding: 15px;
             background: rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        }
+        
+        .image-toolbar label {
+            display: block;
+            margin-bottom: 5px;
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .image-toolbar input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #2d2d44;
+            color: #fff;
+            font-size: 14px;
         }
         
         .image-container {
@@ -145,25 +193,6 @@
             max-width: 100%;
             max-height: 70vh;
             display: block;
-        }
-        
-        .upload-btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #ffd700;
-            color: #1a1a2e;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        .upload-btn:hover {
-            background: #ffed4e;
-        }
-        
-        input[type="file"] {
-            display: none;
         }
         
         /* Click Areas */
@@ -285,6 +314,18 @@
         }
         
         /* Generated Code */
+        .output-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .output-section h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+        
         .code-tabs {
             display: flex;
             gap: 10px;
@@ -348,56 +389,22 @@
         .download-btn:hover {
             background: #ffed4e;
         }
-        
-        /* Instructions */
-        .instructions {
-            background: rgba(0, 255, 0, 0.05);
-            border: 1px solid rgba(0, 255, 0, 0.2);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .instructions strong {
-            color: #00ff00;
-        }
-        
-        .instructions ol {
-            margin-left: 20px;
-            margin-top: 10px;
-        }
-        
-        .instructions li {
-            margin-bottom: 5px;
-            color: #ccc;
-        }
-        
-        .file-name-preview {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
-            font-family: monospace;
-            font-size: 12px;
-            color: #00ff00;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Test Creator</h1>
-        <p class="subtitle">Создание нового тестового сценария</p>
+        <h1>☁️ Test Creator (Cloud)</h1>
+        <p class="subtitle">Создание тестов с изображениями по URL (GitHub Pages, CDN)</p>
         
         <div class="instructions">
-            <strong>📋 Инструкция:</strong>
+            <strong>☁️ Облачный workflow:</strong>
             <ol>
-                <li>Введите название теста (латиницей, без пробелов)</li>
-                <li>Выберите улицу (Префлоп/Флоп/Турн/Ривер)</li>
-                <li>Загрузите скриншот для этой улицы</li>
-                <li>Настройте и разместите невидимые области на кнопках</li>
-                <li>Укажите правильное действие</li>
-                <li>Повторите для всех улиц</li>
-                <li>Скачайте готовые файлы и скопируйте в проект</li>
+                <li>Загрузите скриншоты в интернет (GitHub Pages, imgur, etc.)</li>
+                <li>Введите название теста и URL базовой папки</li>
+                <li>Для каждой улицы укажите URL изображения</li>
+                <li>Настройте кнопки и разместите их на скриншоте</li>
+                <li>Скопируйте сгенерированный код в scenarios.js</li>
+                <li>Закоммитьте изменения - тест сразу доступен онлайн!</li>
             </ol>
         </div>
         
@@ -407,19 +414,24 @@
                 <div class="control-group">
                     <label>Название теста (ID):</label>
                     <input type="text" id="test-id" placeholder="например: qq_4bet_pot" 
-                           oninput="updateFileNames()">
+                           oninput="updateUrlPreview()">
                 </div>
                 <div class="control-group">
                     <label>Название для отображения:</label>
                     <input type="text" id="test-name" placeholder="например: QQ - 4бет пот">
                 </div>
                 <div class="control-group">
-                    <label>Описание:</label>
-                    <input type="text" id="test-desc" placeholder="Короткое описание ситуации">
+                    <label>Базовый URL папки с изображениями:</label>
+                    <input type="text" id="base-url" placeholder="https://yourname.github.io/poker-images/"
+                           oninput="updateUrlPreview()">
                 </div>
             </div>
-            <div class="file-name-preview" id="file-preview">
-                Файлы будут названы: images/[test-id]_[street].png
+            <div class="url-preview" id="url-preview">
+                Предполагаемые URL:<br>
+                {base-url}{test-id}_preflop.png<br>
+                {base-url}{test-id}_flop.png<br>
+                {base-url}{test-id}_turn.png<br>
+                {base-url}{test-id}_river.png
             </div>
         </div>
         
@@ -444,16 +456,13 @@
             <!-- Image Section -->
             <div class="image-section">
                 <div class="image-toolbar">
-                    <span id="current-street-label">Префлоп</span>
-                    <label class="upload-btn">
-                        📁 Загрузить скриншот
-                        <input type="file" id="screenshot-upload" accept="image/*" 
-                               onchange="handleImageUpload(event)">
-                    </label>
+                    <label>URL изображения для <span id="current-street-label">Префлоп</span>:</label>
+                    <input type="text" id="image-url" placeholder="https://..."
+                           onchange="loadImageFromUrl()">
                 </div>
                 <div class="image-container" id="image-container">
                     <div style="color: #666; text-align: center;">
-                        Выберите улицу и загрузите скриншот
+                        Введите URL изображения для этой улицы
                     </div>
                 </div>
             </div>
@@ -530,25 +539,25 @@
         </div>
         
         <!-- Generated Code Section -->
-        <div class="panel" style="margin-top: 20px;">
-            <h3>📄 Генерация кода</h3>
+        <div class="output-section">
+            <h3>📄 Код для scenarios.js</h3>
             <div class="code-tabs">
-                <button class="code-tab active" onclick="showCodeTab('full')">Полный сценарий</button>
-                <button class="code-tab" onclick="showCodeTab('step')">Только шаг</button>
+                <button class="code-tab active" onclick="showCodeTab('scenario')">Сценарий</button>
+                <button class="code-tab" onclick="showCodeTab('html')">HTML опция</button>
             </div>
             <pre class="output-code" id="output-code">// Заполните все поля выше, чтобы сгенерировать код</pre>
             <button class="copy-btn" onclick="copyCode()">📋 Копировать код</button>
-            <button class="download-btn" onclick="downloadFiles()">💾 Скачать файлы (код + изображения)</button>
+            <button class="download-btn" onclick="downloadScenario()">💾 Скачать scenario.js</button>
         </div>
     </div>
 
     <script>
         // Хранилище данных для всех улиц
         const streetData = {
-            preflop: { image: null, buttons: [], instruction: '', correctAction: null },
-            flop: { image: null, buttons: [], instruction: '', correctAction: null },
-            turn: { image: null, buttons: [], instruction: '', correctAction: null },
-            river: { image: null, buttons: [], instruction: '', correctAction: null }
+            preflop: { imageUrl: '', buttons: [], instruction: '', correctAction: null },
+            flop: { imageUrl: '', buttons: [], instruction: '', correctAction: null },
+            turn: { imageUrl: '', buttons: [], instruction: '', correctAction: null },
+            river: { imageUrl: '', buttons: [], instruction: '', correctAction: null }
         };
         
         let currentStreet = 'preflop';
@@ -556,10 +565,6 @@
         
         // Переключение улиц
         function switchStreet(street) {
-            // Сохраняем текущие данные
-            saveCurrentStreetData();
-            
-            // Переключаемся
             currentStreet = street;
             
             // Обновляем UI
@@ -583,22 +588,27 @@
             document.getElementById('current-street-label').textContent = labels[street];
         }
         
-        function saveCurrentStreetData() {
-            streetData[currentStreet].instruction = ''; // Можно добавить поле для инструкции
-        }
-        
         function loadStreetData(street) {
             const data = streetData[street];
             
-            // Очищаем контейнер
+            // Устанавливаем URL
+            document.getElementById('image-url').value = data.imageUrl;
+            
+            // Загружаем изображение
             const container = document.getElementById('image-container');
             container.innerHTML = '';
             
-            if (data.image) {
-                // Восстанавливаем изображение
+            if (data.imageUrl) {
                 const img = document.createElement('img');
-                img.src = data.image;
+                img.src = data.imageUrl;
                 img.id = 'screenshot-img';
+                img.crossOrigin = 'anonymous';
+                img.onload = function() {
+                    document.querySelector(`[data-street="${street}"]`).classList.add('has-image');
+                };
+                img.onerror = function() {
+                    container.innerHTML = '<div style="color: #ff4444; text-align: center;">Ошибка загрузки изображения</div>';
+                };
                 container.appendChild(img);
                 
                 // Восстанавливаем кнопки
@@ -606,7 +616,7 @@
                     renderButton(btn);
                 });
             } else {
-                container.innerHTML = '<div style="color: #666; text-align: center;">Загрузите скриншот для этой улицы</div>';
+                container.innerHTML = '<div style="color: #666; text-align: center;">Введите URL изображения для этой улицы</div>';
             }
             
             // Обновляем список кнопок
@@ -615,29 +625,17 @@
             generateCode();
         }
         
-        // Загрузка изображения
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                streetData[currentStreet].image = e.target.result;
-                
-                // Отмечаем таб как имеющий изображение
-                document.querySelector(`[data-street="${currentStreet}"]`).classList.add('has-image');
-                
-                // Загружаем данные улицы (с новым изображением)
-                loadStreetData(currentStreet);
-            };
-            reader.readAsDataURL(file);
+        function loadImageFromUrl() {
+            const url = document.getElementById('image-url').value;
+            streetData[currentStreet].imageUrl = url;
+            loadStreetData(currentStreet);
         }
         
         // Добавление кнопки
         function addButton() {
             const container = document.getElementById('image-container');
             if (!container.querySelector('img')) {
-                alert('Сначала загрузите скриншот!');
+                alert('Сначала загрузите изображение!');
                 return;
             }
             
@@ -809,6 +807,7 @@
             const testId = document.getElementById('test-id').value || 'my_test';
             const testName = document.getElementById('test-name').value || 'Новый тест';
             const testDesc = document.getElementById('test-desc').value || '';
+            const baseUrl = document.getElementById('base-url').value || '';
             
             const streets = ['preflop', 'flop', 'turn', 'river'];
             const streetLabels = {
@@ -823,7 +822,7 @@
             
             streets.forEach(street => {
                 const data = streetData[street];
-                if (data.buttons.length === 0) return;
+                if (data.buttons.length === 0 || !data.imageUrl) return;
                 
                 hasSteps = true;
                 const correctAction = data.correctAction || data.buttons[0];
@@ -833,7 +832,7 @@
                 stepsCode += `        {
             id: '${street}',
             name: '${streetLabels[street]}',
-            image: 'images/${testId}_${street}.png',
+            image: '${data.imageUrl}',
             instruction: 'Ваше действие на ${streetLabels[street]}?',
             correctAction: {
                 type: '${correctAction.type}',
@@ -861,7 +860,7 @@ ${data.buttons.map(btn => `                {
             
             if (!hasSteps) {
                 document.getElementById('output-code').textContent = 
-                    '// Настройте кнопки хотя бы для одной улицы';
+                    '// Настройте изображения и кнопки хотя бы для одной улицы';
                 return;
             }
             
@@ -878,7 +877,15 @@ ${stepsCode}    ]
         function showCodeTab(type) {
             document.querySelectorAll('.code-tab').forEach(tab => tab.classList.remove('active'));
             event.target.classList.add('active');
-            generateCode();
+            
+            if (type === 'html') {
+                const testId = document.getElementById('test-id').value || 'my_test';
+                const testName = document.getElementById('test-name').value || 'Новый тест';
+                document.getElementById('output-code').textContent = 
+                    `<option value="${testId}">${testName}</option>`;
+            } else {
+                generateCode();
+            }
         }
         
         function copyCode() {
@@ -892,46 +899,36 @@ ${stepsCode}    ]
             });
         }
         
-        function updateFileNames() {
+        function updateUrlPreview() {
             const testId = document.getElementById('test-id').value || '[test-id]';
-            document.getElementById('file-preview').innerHTML = `
-                Файлы будут созданы:<br>
-                📁 images/${testId}_preflop.png<br>
-                📁 images/${testId}_flop.png<br>
-                📁 images/${testId}_turn.png<br>
-                📁 images/${testId}_river.png<br>
-                📝 js/scenarios.js (добавить новый сценарий)
+            const baseUrl = document.getElementById('base-url').value || '[base-url]';
+            
+            document.getElementById('url-preview').innerHTML = `
+                Предполагаемые URL:<br>
+                ${baseUrl}${testId}_preflop.png<br>
+                ${baseUrl}${testId}_flop.png<br>
+                ${baseUrl}${testId}_turn.png<br>
+                ${baseUrl}${testId}_river.png<br><br>
+                <span style="color: #888;">Или используйте прямые URL (imgur, etc.)</span>
             `;
             generateCode();
         }
         
-        function downloadFiles() {
+        function downloadScenario() {
             const testId = document.getElementById('test-id').value || 'my_test';
-            
-            // Скачиваем каждое изображение
-            ['preflop', 'flop', 'turn', 'river'].forEach(street => {
-                const data = streetData[street];
-                if (data.image) {
-                    const link = document.createElement('a');
-                    link.download = `${testId}_${street}.png`;
-                    link.href = data.image;
-                    link.click();
-                }
-            });
-            
-            // Скачиваем код
             const code = document.getElementById('output-code').textContent;
+            
             const blob = new Blob([code], { type: 'text/javascript' });
             const link = document.createElement('a');
             link.download = `${testId}_scenario.js`;
             link.href = URL.createObjectURL(blob);
             link.click();
             
-            alert('Файлы скачаны!\n\n1. Переместите PNG файлы в папку images/\n2. Скопируйте код из ' + testId + '_scenario.js в js/scenarios.js\n3. Добавьте опцию в index.html');
+            alert('Сценарий скачан!\n\n1. Откройте js/scenarios.js\n2. Добавьте код в объект SCENARIOS\n3. Добавьте опцию в index.html\n4. Закоммитьте и запушьте');
         }
         
         // Инициализация
-        updateFileNames();
+        updateUrlPreview();
     </script>
 </body>
 </html>
