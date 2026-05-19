@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Button Configurator - Настройка позиций кнопок</title>
+    <title>Test Creator - Создание нового теста</title>
     <style>
         * {
             margin: 0;
@@ -20,117 +20,37 @@
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
         
         h1 {
             color: #ffd700;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
             margin-bottom: 20px;
         }
         
-        .instructions {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .instructions ol {
-            margin-left: 20px;
-            margin-top: 10px;
-        }
-        
-        .instructions li {
-            margin-bottom: 5px;
-        }
-        
-        .upload-section {
-            margin-bottom: 20px;
-        }
-        
-        .upload-section input[type="file"] {
-            display: none;
-        }
-        
-        .upload-btn {
-            display: inline-block;
-            padding: 12px 30px;
-            background: #ffd700;
-            color: #1a1a2e;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-        
-        .upload-btn:hover {
-            background: #ffed4e;
-        }
-        
-        .config-panel {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 20px;
-        }
-        
-        .image-container {
-            position: relative;
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-            min-height: 600px;
-        }
-        
-        .image-container img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        
-        /* Невидимая область клика для настройки */
-        .click-area {
-            position: absolute;
-            cursor: move;
-            user-select: none;
-            /* В режиме редактирования показываем границы для удобства */
-            background: rgba(255, 0, 0, 0.15);
-            border: 2px dashed rgba(255, 100, 100, 0.6);
-            border-radius: 4px;
-        }
-        
-        .click-area:hover {
-            background: rgba(255, 0, 0, 0.25);
-            border-color: rgba(255, 150, 150, 0.8);
-        }
-        
-        .click-area.dragging {
-            background: rgba(255, 0, 0, 0.35);
-            z-index: 1000;
-        }
-        
-        .click-area-label {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 12px;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 0 0 3px rgba(0,0,0,0.8);
-            pointer-events: none;
-            white-space: nowrap;
-        }
-        
-        .controls {
+        /* Test Setup Section */
+        .setup-section {
             background: rgba(255, 255, 255, 0.05);
             padding: 20px;
             border-radius: 10px;
-            height: fit-content;
+            margin-bottom: 20px;
+        }
+        
+        .setup-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
         }
         
         .control-group {
-            margin-bottom: 15px;
+            margin-bottom: 0;
         }
         
         .control-group label {
@@ -141,9 +61,10 @@
         }
         
         .control-group input,
-        .control-group select {
+        .control-group select,
+        .control-group textarea {
             width: 100%;
-            padding: 8px 12px;
+            padding: 10px 12px;
             border: none;
             border-radius: 5px;
             background: #2d2d44;
@@ -151,19 +72,172 @@
             font-size: 14px;
         }
         
+        .control-group textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+        
+        /* Street Selector */
+        .street-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .street-tab {
+            padding: 10px 20px;
+            background: #2d2d44;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .street-tab:hover {
+            background: #3d3d54;
+        }
+        
+        .street-tab.active {
+            background: #ffd700;
+            color: #1a1a2e;
+            border-color: #ffd700;
+        }
+        
+        .street-tab.has-image::after {
+            content: ' ✓';
+            color: #00ff00;
+        }
+        
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+        }
+        
+        /* Image Area */
+        .image-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .image-toolbar {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .image-container {
+            position: relative;
+            background: #000;
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .image-container img {
+            max-width: 100%;
+            max-height: 70vh;
+            display: block;
+        }
+        
+        .upload-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #ffd700;
+            color: #1a1a2e;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .upload-btn:hover {
+            background: #ffed4e;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Click Areas */
+        .click-area {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px dashed rgba(255, 100, 100, 0.8);
+            border-radius: 4px;
+        }
+        
+        .click-area:hover {
+            background: rgba(255, 0, 0, 0.3);
+            border-color: rgba(255, 150, 150, 1);
+        }
+        
+        .click-area.dragging {
+            background: rgba(255, 0, 0, 0.4);
+            z-index: 1000;
+        }
+        
+        .click-area-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 11px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 4px rgba(0,0,0,1);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .panel h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        /* Button Config */
+        .btn-config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
         .btn-row {
             display: flex;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-top: 15px;
         }
         
         .btn-row button {
             flex: 1;
-            padding: 8px;
+            padding: 10px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 12px;
             font-weight: bold;
         }
         
@@ -177,15 +251,59 @@
             color: #fff;
         }
         
-        .output-section {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        /* Button List */
+        .button-list {
+            max-height: 200px;
+            overflow-y: auto;
         }
         
-        .output-section h3 {
-            color: #ffd700;
+        .button-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .button-item button {
+            padding: 4px 10px;
+            background: #aa0000;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .pos-display {
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        
+        /* Generated Code */
+        .code-tabs {
+            display: flex;
+            gap: 10px;
             margin-bottom: 10px;
+        }
+        
+        .code-tab {
+            padding: 8px 15px;
+            background: #2d2d44;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 13px;
+        }
+        
+        .code-tab.active {
+            background: #ffd700;
+            color: #1a1a2e;
         }
         
         .output-code {
@@ -193,180 +311,336 @@
             padding: 15px;
             border-radius: 8px;
             font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-size: 11px;
             overflow-x: auto;
             white-space: pre-wrap;
             word-wrap: break-word;
             color: #00ff00;
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
+            margin-bottom: 10px;
         }
         
-        .copy-btn {
-            margin-top: 10px;
-            padding: 10px 20px;
-            background: #444;
-            color: #fff;
+        .copy-btn, .download-btn {
+            width: 100%;
+            padding: 12px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            width: 100%;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .copy-btn {
+            background: #444;
+            color: #fff;
+        }
+        
+        .download-btn {
+            background: #ffd700;
+            color: #1a1a2e;
         }
         
         .copy-btn:hover {
             background: #555;
         }
         
-        .button-list {
-            margin-top: 15px;
+        .download-btn:hover {
+            background: #ffed4e;
         }
         
-        .button-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 5px;
-            margin-bottom: 5px;
-            font-size: 12px;
+        /* Instructions */
+        .instructions {
+            background: rgba(0, 255, 0, 0.05);
+            border: 1px solid rgba(0, 255, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
         
-        .button-item button {
-            padding: 4px 8px;
-            background: #aa0000;
-            color: #fff;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 10px;
-        }
-        
-        .pos-display {
+        .instructions strong {
             color: #00ff00;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+        
+        .file-name-preview {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
             font-family: monospace;
+            font-size: 12px;
+            color: #00ff00;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎯 Button Configurator</h1>
+        <h1>🎯 Test Creator</h1>
+        <p class="subtitle">Создание нового тестового сценария</p>
         
         <div class="instructions">
-            <strong>Как использовать:</strong>
+            <strong>📋 Инструкция:</strong>
             <ol>
-                <li>Загрузите скриншот покерного стола</li>
-                <li>Настройте параметры кнопки (тип, текст, сумма)</li>
-                <li>Нажмите "Добавить кнопку"</li>
-                <li>Перетащите область на нужное место поверх кнопки на скриншоте</li>
-                <li>Повторите для всех кнопок</li>
-                <li>Скопируйте сгенерированный код в scenarios.js</li>
+                <li>Введите название теста (латиницей, без пробелов)</li>
+                <li>Выберите улицу (Префлоп/Флоп/Турн/Ривер)</li>
+                <li>Загрузите скриншот для этой улицы</li>
+                <li>Настройте и разместите невидимые области на кнопках</li>
+                <li>Укажите правильное действие</li>
+                <li>Повторите для всех улиц</li>
+                <li>Скачайте готовые файлы и скопируйте в проект</li>
             </ol>
         </div>
         
-        <div class="upload-section">
-            <label for="screenshot-upload" class="upload-btn">
-                📁 Загрузить скриншот
-            </label>
-            <input type="file" id="screenshot-upload" accept="image/*">
+        <!-- Test Setup -->
+        <div class="setup-section">
+            <div class="setup-grid">
+                <div class="control-group">
+                    <label>Название теста (ID):</label>
+                    <input type="text" id="test-id" placeholder="например: qq_4bet_pot" 
+                           oninput="updateFileNames()">
+                </div>
+                <div class="control-group">
+                    <label>Название для отображения:</label>
+                    <input type="text" id="test-name" placeholder="например: QQ - 4бет пот">
+                </div>
+                <div class="control-group">
+                    <label>Описание:</label>
+                    <input type="text" id="test-desc" placeholder="Короткое описание ситуации">
+                </div>
+            </div>
+            <div class="file-name-preview" id="file-preview">
+                Файлы будут названы: images/[test-id]_[street].png
+            </div>
         </div>
         
-        <div class="config-panel">
-            <div class="image-container" id="image-container">
-                <div style="padding: 40px; text-align: center; color: #666;">
-                    Загрузите скриншот, чтобы начать
+        <!-- Street Tabs -->
+        <div class="street-tabs">
+            <div class="street-tab active" data-street="preflop" onclick="switchStreet('preflop')">
+                1. Префлоп
+            </div>
+            <div class="street-tab" data-street="flop" onclick="switchStreet('flop')">
+                2. Флоп
+            </div>
+            <div class="street-tab" data-street="turn" onclick="switchStreet('turn')">
+                3. Турн
+            </div>
+            <div class="street-tab" data-street="river" onclick="switchStreet('river')">
+                4. Ривер
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Image Section -->
+            <div class="image-section">
+                <div class="image-toolbar">
+                    <span id="current-street-label">Префлоп</span>
+                    <label class="upload-btn">
+                        📁 Загрузить скриншот
+                        <input type="file" id="screenshot-upload" accept="image/*" 
+                               onchange="handleImageUpload(event)">
+                    </label>
+                </div>
+                <div class="image-container" id="image-container">
+                    <div style="color: #666; text-align: center;">
+                        Выберите улицу и загрузите скриншот
+                    </div>
                 </div>
             </div>
             
-            <div class="controls">
-                <h3 style="color: #ffd700; margin-bottom: 15px;">Настройка кнопки</h3>
-                
-                <div class="control-group">
-                    <label>Тип действия:</label>
-                    <select id="btn-type">
-                        <option value="fold">Fold</option>
-                        <option value="check">Check</option>
-                        <option value="call">Call</option>
-                        <option value="bet">Bet</option>
-                        <option value="raise">Raise</option>
-                    </select>
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Button Config -->
+                <div class="panel">
+                    <h3>⚙️ Настройка кнопки</h3>
+                    
+                    <div class="control-group" style="margin-bottom: 10px;">
+                        <label>Тип действия:</label>
+                        <select id="btn-type">
+                            <option value="fold">Fold</option>
+                            <option value="check">Check</option>
+                            <option value="call">Call</option>
+                            <option value="bet">Bet</option>
+                            <option value="raise">Raise</option>
+                        </select>
+                    </div>
+                    
+                    <div class="btn-config-grid">
+                        <div class="control-group">
+                            <label>Текст:</label>
+                            <input type="text" id="btn-label" value="Fold">
+                        </div>
+                        <div class="control-group">
+                            <label>Сумма:</label>
+                            <input type="text" id="btn-amount" placeholder="$0.02">
+                        </div>
+                        <div class="control-group">
+                            <label>Ширина (px):</label>
+                            <input type="number" id="btn-width" value="140">
+                        </div>
+                        <div class="control-group">
+                            <label>Высота (px):</label>
+                            <input type="number" id="btn-height" value="65">
+                        </div>
+                    </div>
+                    
+                    <div class="btn-row">
+                        <button class="btn-add" onclick="addButton()">➕ Добавить</button>
+                        <button class="btn-clear" onclick="clearButtons()">🗑 Очистить</button>
+                    </div>
                 </div>
                 
-                <div class="control-group">
-                    <label>Текст кнопки:</label>
-                    <input type="text" id="btn-label" value="Fold" placeholder="Fold">
+                <!-- Buttons List -->
+                <div class="panel">
+                    <h3>📋 Добавленные кнопки</h3>
+                    <div class="button-list" id="button-list">
+                        <div style="color: #666; font-size: 13px;">Нет кнопок</div>
+                    </div>
                 </div>
                 
-                <div class="control-group">
-                    <label>Сумма (опционально):</label>
-                    <input type="text" id="btn-amount" placeholder="$0.02">
-                </div>
-                
-                <div class="control-group">
-                    <label>Ширина (px):</label>
-                    <input type="number" id="btn-width" value="140">
-                </div>
-                
-                <div class="control-group">
-                    <label>Высота (px):</label>
-                    <input type="number" id="btn-height" value="65">
-                </div>
-                
-                <div class="btn-row">
-                    <button class="btn-add" onclick="addButton()">➕ Добавить</button>
-                    <button class="btn-clear" onclick="clearButtons()">🗑 Очистить</button>
-                </div>
-                
-                <div class="button-list" id="button-list">
-                    <!-- Список добавленных кнопок -->
-                </div>
-                
-                <div class="output-section">
-                    <h3>Сгенерированный код:</h3>
-                    <pre class="output-code" id="output-code">// Добавьте кнопки, чтобы сгенерировать код</pre>
-                    <button class="copy-btn" onclick="copyCode()">📋 Копировать код</button>
+                <!-- Correct Action -->
+                <div class="panel">
+                    <h3>✅ Правильное действие</h3>
+                    <div class="control-group" style="margin-bottom: 10px;">
+                        <label>Выберите правильную кнопку:</label>
+                        <select id="correct-action" onchange="updateCorrectAction()">
+                            <option value="">-- Не выбрано --</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Объяснение (если правильно):</label>
+                        <textarea id="feedback-correct" placeholder="Отлично! Это правильное решение потому что..."></textarea>
+                    </div>
+                    <div class="control-group">
+                        <label>Объяснение (если неправильно):</label>
+                        <textarea id="feedback-incorrect" placeholder="Неправильно. Лучше было бы..."></textarea>
+                    </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- Generated Code Section -->
+        <div class="panel" style="margin-top: 20px;">
+            <h3>📄 Генерация кода</h3>
+            <div class="code-tabs">
+                <button class="code-tab active" onclick="showCodeTab('full')">Полный сценарий</button>
+                <button class="code-tab" onclick="showCodeTab('step')">Только шаг</button>
+            </div>
+            <pre class="output-code" id="output-code">// Заполните все поля выше, чтобы сгенерировать код</pre>
+            <button class="copy-btn" onclick="copyCode()">📋 Копировать код</button>
+            <button class="download-btn" onclick="downloadFiles()">💾 Скачать файлы (код + изображения)</button>
         </div>
     </div>
 
     <script>
-        let buttons = [];
+        // Хранилище данных для всех улиц
+        const streetData = {
+            preflop: { image: null, buttons: [], instruction: '', correctAction: null },
+            flop: { image: null, buttons: [], instruction: '', correctAction: null },
+            turn: { image: null, buttons: [], instruction: '', correctAction: null },
+            river: { image: null, buttons: [], instruction: '', correctAction: null }
+        };
+        
+        let currentStreet = 'preflop';
         let buttonIdCounter = 0;
-        let containerRect = null;
-
-        // Загрузка скриншота
-        document.getElementById('screenshot-upload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const container = document.getElementById('image-container');
-                    container.innerHTML = `<img src="${event.target.result}" id="screenshot-img" alt="Screenshot">`;
-                    
-                    setTimeout(() => {
-                        const img = document.getElementById('screenshot-img');
-                        containerRect = img.getBoundingClientRect();
-                    }, 100);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Обновление label при изменении типа
-        document.getElementById('btn-type').addEventListener('change', function() {
-            const type = this.value;
-            const labelMap = {
-                'fold': 'Fold',
-                'check': 'Check',
-                'call': 'Call',
-                'bet': 'Bet',
-                'raise': 'Raise to'
+        
+        // Переключение улиц
+        function switchStreet(street) {
+            // Сохраняем текущие данные
+            saveCurrentStreetData();
+            
+            // Переключаемся
+            currentStreet = street;
+            
+            // Обновляем UI
+            document.querySelectorAll('.street-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.street === street) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Загружаем данные улицы
+            loadStreetData(street);
+            
+            // Обновляем метку
+            const labels = {
+                preflop: 'Префлоп',
+                flop: 'Флоп',
+                turn: 'Турн',
+                river: 'Ривер'
             };
-            document.getElementById('btn-label').value = labelMap[type] || '';
-        });
-
+            document.getElementById('current-street-label').textContent = labels[street];
+        }
+        
+        function saveCurrentStreetData() {
+            streetData[currentStreet].instruction = ''; // Можно добавить поле для инструкции
+        }
+        
+        function loadStreetData(street) {
+            const data = streetData[street];
+            
+            // Очищаем контейнер
+            const container = document.getElementById('image-container');
+            container.innerHTML = '';
+            
+            if (data.image) {
+                // Восстанавливаем изображение
+                const img = document.createElement('img');
+                img.src = data.image;
+                img.id = 'screenshot-img';
+                container.appendChild(img);
+                
+                // Восстанавливаем кнопки
+                data.buttons.forEach(btn => {
+                    renderButton(btn);
+                });
+            } else {
+                container.innerHTML = '<div style="color: #666; text-align: center;">Загрузите скриншот для этой улицы</div>';
+            }
+            
+            // Обновляем список кнопок
+            updateButtonList();
+            updateCorrectActionSelect();
+            generateCode();
+        }
+        
+        // Загрузка изображения
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                streetData[currentStreet].image = e.target.result;
+                
+                // Отмечаем таб как имеющий изображение
+                document.querySelector(`[data-street="${currentStreet}"]`).classList.add('has-image');
+                
+                // Загружаем данные улицы (с новым изображением)
+                loadStreetData(currentStreet);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Добавление кнопки
         function addButton() {
+            const container = document.getElementById('image-container');
+            if (!container.querySelector('img')) {
+                alert('Сначала загрузите скриншот!');
+                return;
+            }
+            
             const type = document.getElementById('btn-type').value;
             const label = document.getElementById('btn-label').value;
             const amount = document.getElementById('btn-amount').value;
@@ -380,16 +654,17 @@
                 amount: amount,
                 width: width,
                 height: height,
-                x: 50, // Центр по умолчанию
-                y: 50
+                x: 50,
+                y: 85
             };
             
-            buttons.push(button);
+            streetData[currentStreet].buttons.push(button);
             renderButton(button);
             updateButtonList();
+            updateCorrectActionSelect();
             generateCode();
         }
-
+        
         function renderButton(button) {
             const container = document.getElementById('image-container');
             const areaEl = document.createElement('div');
@@ -399,39 +674,30 @@
             areaEl.style.top = `calc(${button.y}% - ${button.height / 2}px)`;
             areaEl.style.width = `${button.width}px`;
             areaEl.style.height = `${button.height}px`;
-            
-            // Добавляем метку для удобства редактирования
             areaEl.innerHTML = `<div class="click-area-label">${button.label}</div>`;
             
             // Drag functionality
             let isDragging = false;
-            let startX, startY;
             
             areaEl.addEventListener('mousedown', function(e) {
                 isDragging = true;
                 areaEl.classList.add('dragging');
-                startX = e.clientX - areaEl.offsetLeft;
-                startY = e.clientY - areaEl.offsetTop;
                 e.preventDefault();
             });
             
             document.addEventListener('mousemove', function(e) {
                 if (!isDragging) return;
                 
-                const container = document.getElementById('image-container');
                 const rect = container.getBoundingClientRect();
-                
                 let newX = e.clientX - rect.left - button.width / 2;
                 let newY = e.clientY - rect.top - button.height / 2;
                 
-                // Ограничения
                 newX = Math.max(0, Math.min(newX, rect.width - button.width));
                 newY = Math.max(0, Math.min(newY, rect.height - button.height));
                 
                 areaEl.style.left = `${newX}px`;
                 areaEl.style.top = `${newY}px`;
                 
-                // Обновляем проценты
                 button.x = ((newX + button.width / 2) / rect.width) * 100;
                 button.y = ((newY + button.height / 2) / rect.height) * 100;
                 
@@ -448,10 +714,9 @@
             
             container.appendChild(areaEl);
         }
-
+        
         function clearButtons() {
-            buttons = [];
-            buttonIdCounter = 0;
+            streetData[currentStreet].buttons = [];
             const container = document.getElementById('image-container');
             const img = container.querySelector('img');
             if (img) {
@@ -459,68 +724,214 @@
                 container.appendChild(img);
             }
             updateButtonList();
+            updateCorrectActionSelect();
             generateCode();
         }
-
+        
         function updateButtonList() {
             const list = document.getElementById('button-list');
+            const buttons = streetData[currentStreet].buttons;
+            
+            if (buttons.length === 0) {
+                list.innerHTML = '<div style="color: #666; font-size: 13px;">Нет кнопок</div>';
+                return;
+            }
+            
             list.innerHTML = buttons.map((btn, idx) => `
                 <div class="button-item">
                     <span>${btn.label} ${btn.amount || ''}</span>
-                    <span class="pos-display">x:${btn.x.toFixed(1)}% y:${btn.y.toFixed(1)}%</span>
+                    <span class="pos-display">${btn.x.toFixed(1)}%, ${btn.y.toFixed(1)}%</span>
                     <button onclick="removeButton(${idx})">×</button>
                 </div>
             `).join('');
         }
-
+        
         function removeButton(index) {
+            const buttons = streetData[currentStreet].buttons;
             const btn = buttons[index];
             const el = document.getElementById(btn.id);
             if (el) el.remove();
             buttons.splice(index, 1);
             updateButtonList();
+            updateCorrectActionSelect();
             generateCode();
         }
-
-        function generateCode() {
-            if (buttons.length === 0) {
-                document.getElementById('output-code').textContent = '// Добавьте кнопки, чтобы сгенерировать код';
-                return;
-            }
+        
+        function updateCorrectActionSelect() {
+            const select = document.getElementById('correct-action');
+            const buttons = streetData[currentStreet].buttons;
+            const currentValue = select.value;
             
-            const code = buttons.map(btn => `                {
+            select.innerHTML = '<option value="">-- Не выбрано --</option>';
+            buttons.forEach(btn => {
+                const option = document.createElement('option');
+                option.value = btn.type;
+                option.textContent = `${btn.label} ${btn.amount || ''}`;
+                select.appendChild(option);
+            });
+            
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
+        
+        function updateCorrectAction() {
+            const select = document.getElementById('correct-action');
+            const type = select.value;
+            const buttons = streetData[currentStreet].buttons;
+            const btn = buttons.find(b => b.type === type);
+            
+            if (btn) {
+                streetData[currentStreet].correctAction = {
+                    type: btn.type,
+                    label: btn.label,
+                    amount: btn.amount
+                };
+            }
+            generateCode();
+        }
+        
+        // Обновление полей при изменении типа
+        document.getElementById('btn-type').addEventListener('change', function() {
+            const type = this.value;
+            const labelMap = {
+                'fold': 'Fold',
+                'check': 'Check', 
+                'call': 'Call',
+                'bet': 'Bet',
+                'raise': 'Raise to'
+            };
+            document.getElementById('btn-label').value = labelMap[type] || '';
+        });
+        
+        // Генерация кода
+        function generateCode() {
+            const testId = document.getElementById('test-id').value || 'my_test';
+            const testName = document.getElementById('test-name').value || 'Новый тест';
+            const testDesc = document.getElementById('test-desc').value || '';
+            
+            const streets = ['preflop', 'flop', 'turn', 'river'];
+            const streetLabels = {
+                preflop: 'Префлоп',
+                flop: 'Флоп', 
+                turn: 'Турн',
+                river: 'Ривер'
+            };
+            
+            let stepsCode = '';
+            let hasSteps = false;
+            
+            streets.forEach(street => {
+                const data = streetData[street];
+                if (data.buttons.length === 0) return;
+                
+                hasSteps = true;
+                const correctAction = data.correctAction || data.buttons[0];
+                const feedbackCorrect = document.getElementById('feedback-correct').value || 'Правильно!';
+                const feedbackIncorrect = document.getElementById('feedback-incorrect').value || 'Неправильно.';
+                
+                stepsCode += `        {
+            id: '${street}',
+            name: '${streetLabels[street]}',
+            image: 'images/${testId}_${street}.png',
+            instruction: 'Ваше действие на ${streetLabels[street]}?',
+            correctAction: {
+                type: '${correctAction.type}',
+                label: '${correctAction.label}',
+                amount: '${correctAction.amount || ''}'
+            },
+            buttons: [
+${data.buttons.map(btn => `                {
                     id: '${btn.type}',
                     type: '${btn.type}',
-                    label: '${btn.label}',${btn.amount ? `
-                    amount: '${btn.amount}',` : ''}
+                    label: '${btn.label}',
+                    amount: '${btn.amount || ''}',
                     x: ${btn.x.toFixed(1)},
                     y: ${btn.y.toFixed(1)},
                     width: ${btn.width},
                     height: ${btn.height}
-                }`).join(',\n');
+                }`).join(',\n')}
+            ],
+            feedback: {
+                correct: '${feedbackCorrect}',
+                incorrect: '${feedbackIncorrect}'
+            }
+        },\n`;
+            });
             
-            document.getElementById('output-code').textContent = code;
+            if (!hasSteps) {
+                document.getElementById('output-code').textContent = 
+                    '// Настройте кнопки хотя бы для одной улицы';
+                return;
+            }
+            
+            const fullCode = `'${testId}': {
+    name: '${testName}',
+    description: '${testDesc}',
+    steps: [
+${stepsCode}    ]
+}`;
+            
+            document.getElementById('output-code').textContent = fullCode;
         }
-
+        
+        function showCodeTab(type) {
+            document.querySelectorAll('.code-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            generateCode();
+        }
+        
         function copyCode() {
             const code = document.getElementById('output-code').textContent;
             navigator.clipboard.writeText(code).then(() => {
-                const btn = document.querySelector('.copy-btn');
-                const originalText = btn.textContent;
+                const btn = event.target;
                 btn.textContent = '✅ Скопировано!';
                 setTimeout(() => {
-                    btn.textContent = originalText;
+                    btn.textContent = '📋 Копировать код';
                 }, 2000);
             });
         }
         
-        // Обновление размеров контейнера при изменении окна
-        window.addEventListener('resize', () => {
-            const img = document.getElementById('screenshot-img');
-            if (img) {
-                containerRect = img.getBoundingClientRect();
-            }
-        });
+        function updateFileNames() {
+            const testId = document.getElementById('test-id').value || '[test-id]';
+            document.getElementById('file-preview').innerHTML = `
+                Файлы будут созданы:<br>
+                📁 images/${testId}_preflop.png<br>
+                📁 images/${testId}_flop.png<br>
+                📁 images/${testId}_turn.png<br>
+                📁 images/${testId}_river.png<br>
+                📝 js/scenarios.js (добавить новый сценарий)
+            `;
+            generateCode();
+        }
+        
+        function downloadFiles() {
+            const testId = document.getElementById('test-id').value || 'my_test';
+            
+            // Скачиваем каждое изображение
+            ['preflop', 'flop', 'turn', 'river'].forEach(street => {
+                const data = streetData[street];
+                if (data.image) {
+                    const link = document.createElement('a');
+                    link.download = `${testId}_${street}.png`;
+                    link.href = data.image;
+                    link.click();
+                }
+            });
+            
+            // Скачиваем код
+            const code = document.getElementById('output-code').textContent;
+            const blob = new Blob([code], { type: 'text/javascript' });
+            const link = document.createElement('a');
+            link.download = `${testId}_scenario.js`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            
+            alert('Файлы скачаны!\n\n1. Переместите PNG файлы в папку images/\n2. Скопируйте код из ' + testId + '_scenario.js в js/scenarios.js\n3. Добавьте опцию в index.html');
+        }
+        
+        // Инициализация
+        updateFileNames();
     </script>
 </body>
 </html>
