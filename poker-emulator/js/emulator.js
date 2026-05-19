@@ -1,0 +1,271 @@
+/**
+ * Poker Emulator - Основной класс для управления тестированием
+ * 
+ * Использует невидимые прозрачные области поверх скриншота для отслеживания кликов.
+ * Это позволяет боту "видеть" оригинальные кнопки на скриншоте и кликать по ним.
+ */
+class PokerEmulator {
+    constructor() {
+        this.currentScenario = null;
+        this.currentStepIndex = 0;
+        this.results = [];
+        this.isWaitingForAction = true;
+        this.debugMode = false;
+        
+        this.initElements();
+        this.initEventListeners();
+        this.loadScenario('aks_3bet_cbet');
+    }
+
+    initElements() {
+        this.elements = {
+            screenshotBg: document.getElementById('screenshot-bg'),
+            clickOverlay: document.getElementById('click-overlay'),
+            gameScreen: document.getElementById('game-screen'),
+            actionHint: document.getElementById('action-hint'),
+            currentStep: document.getElementById('current-step'),
+            totalSteps: document.getElementById('total-steps'),
+            resultDisplay: document.getElementById('result-display'),
+            scenarioSelect: document.getElementById('scenario-select'),
+            resetBtn: document.getElementById('reset-btn'),
+            nextBtn: document.getElementById('next-btn'),
+            testSummary: document.getElementById('test-summary'),
+            summaryContent: document.getElementById('summary-content'),
+            debugCheckbox: document.getElementById('debug-mode')
+        };
+    }
+
+    initEventListeners() {
+        this.elements.scenarioSelect.addEventListener('change', (e) => {
+            this.loadScenario(e.target.value);
+        });
+
+        this.elements.resetBtn.addEventListener('click', () => {
+            this.resetTest();
+        });
+
+        this.elements.nextBtn.addEventListener('click', () => {
+            this.nextStep();
+        });
+
+        // Режим отладки - показать области клика
+        this.elements.debugCheckbox.addEventListener('change', (e) => {
+            this.debugMode = e.target.checked;
+            if (this.debugMode) {
+                this.elements.gameScreen.classList.add('debug');
+            } else {
+                this.elements.gameScreen.classList.remove('debug');
+            }
+        });
+
+        // Обработка изменения размера окна для пересчёта позиций
+        window.addEventListener('resize', () => {
+            if (this.currentScenario) {
+                this.renderClickAreas();
+            }
+        });
+    }
+
+    loadScenario(scenarioId) {
+        if (!SCENARIOS[scenarioId]) {
+            console.error(`Сценарий ${scenarioId} не найден`);
+            return;
+        }
+
+        this.currentScenario = SCENARIOS[scenarioId];
+        this.currentStepIndex = 0;
+        this.results = [];
+        
+        // Обновляем UI
+        this.elements.totalSteps.textContent = this.currentScenario.steps.length;
+        this.elements.testSummary.style.display = 'none';
+        
+        this.renderStep();
+    }
+
+    renderStep() {
+        const step = this.currentScenario.steps[this.currentStepIndex];
+        
+        // Обновляем счётчик шагов
+        this.elements.currentStep.textContent = this.currentStepIndex + 1;
+        
+        // Устанавливаем фон (скриншот)
+        this.elements.screenshotBg.style.backgroundImage = `url(${step.image})`;
+        
+        // Очищаем предыдущие результаты
+        this.elements.resultDisplay.className = 'result waiting';
+        this.elements.resultDisplay.textContent = step.instruction;
+        
+        // Скрываем подсказку
+        this.elements.actionHint.classList.remove('visible');
+        
+        // Разблокируем области для кликов
+        this.isWaitingForAction = true;
+        
+        // Обновляем состояние кнопки "Следующий шаг"
+        this.elements.nextBtn.disabled = true;
+        
+        // Отрисовываем невидимые области кликов
+        this.renderClickAreas();
+    }
+
+    renderClickAreas() {
+        const step = this.currentScenario.steps[this.currentStepIndex];
+        this.elements.clickOverlay.innerHTML = '';
+
+        const containerWidth = this.elements.screenshotBg.offsetWidth;
+        const containerHeight = this.elements.screenshotBg.offsetHeight;
+
+        step.buttons.forEach(buttonConfig => {
+            const clickArea = this.createClickArea(buttonConfig, containerWidth, containerHeight);
+            this.elements.clickOverlay.appendChild(clickArea);
+        });
+    }
+
+    createClickArea(config, containerWidth, containerHeight) {
+        // Создаём невидимую область для клика
+        const area = document.createElement('button');
+        area.className = 'click-area';
+        area.id = `area-${config.id}`;
+        area.setAttribute('data-action', config.type);
+        area.setAttribute('data-label', config.label);
+        area.setAttribute('data-amount', config.amount || '');
+        
+        // Позиционируем область в процентах относительно контейнера
+        const left = (config.x / 100) * containerWidth - (config.width / 2);
+        const top = (config.y / 100) * containerHeight - (config.height / 2);
+        
+        area.style.left = `${left}px`;
+        area.style.top = `${top}px`;
+        area.style.width = `${config.width}px`;
+        area.style.height = `${config.height}px`;
+        
+        // Для доступности (screen readers) добавляем aria-label
+        area.setAttribute('aria-label', `${config.label} ${config.amount || ''}`);
+        
+        // Обработчик клика - невидимый для бота, но регистрирует действие
+        area.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.handleAction(config);
+        });
+        
+        // Также поддерживаем touch для мобильных устройств
+        area.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.handleAction(config);
+        });
+        
+        return area;
+    }
+
+    handleAction(buttonConfig) {
+        if (!this.isWaitingForAction) return;
+        
+        const step = this.currentScenario.steps[this.currentStepIndex];
+        const isCorrect = buttonConfig.type === step.correctAction.type;
+        
+        // Блокируем дальнейшие действия
+        this.isWaitingForAction = false;
+        
+        // Сохраняем результат
+        this.results.push({
+            step: step.name,
+            action: buttonConfig.label + (buttonConfig.amount ? ` ${buttonConfig.amount}` : ''),
+            correct: isCorrect,
+            expected: step.correctAction.label + (step.correctAction.amount ? ` ${step.correctAction.amount}` : '')
+        });
+        
+        // Показываем результат теста (только в панели статуса, не на кнопках)
+        if (isCorrect) {
+            this.elements.resultDisplay.className = 'result correct';
+            this.elements.resultDisplay.textContent = `✓ ${step.feedback.correct}`;
+            console.log(`[TEST] ✓ Правильно: ${buttonConfig.type}`);
+        } else {
+            this.elements.resultDisplay.className = 'result incorrect';
+            this.elements.resultDisplay.textContent = `✗ ${step.feedback.incorrect}`;
+            console.log(`[TEST] ✗ Неправильно: ${buttonConfig.type}, ожидалось: ${step.correctAction.type}`);
+        }
+        
+        // Показываем подсказку с правильным действием
+        this.showActionHint(step.correctAction);
+        
+        // Разблокируем кнопку "Следующий шаг"
+        this.elements.nextBtn.disabled = false;
+        
+        // Если это последний шаг, показываем итоги
+        if (this.currentStepIndex === this.currentScenario.steps.length - 1) {
+            setTimeout(() => this.showSummary(), 1500);
+        }
+    }
+
+    showActionHint(correctAction) {
+        const hint = this.elements.actionHint;
+        hint.innerHTML = `
+            <div>Правильное действие:</div>
+            <div style="font-size: 24px; margin-top: 10px;">${correctAction.label} ${correctAction.amount || ''}</div>
+        `;
+        hint.classList.add('visible');
+        
+        // Автоматически скрываем через 3 секунды
+        setTimeout(() => {
+            hint.classList.remove('visible');
+        }, 3000);
+    }
+
+    nextStep() {
+        if (this.currentStepIndex < this.currentScenario.steps.length - 1) {
+            this.currentStepIndex++;
+            this.renderStep();
+        }
+    }
+
+    resetTest() {
+        this.currentStepIndex = 0;
+        this.results = [];
+        this.elements.testSummary.style.display = 'none';
+        this.renderStep();
+    }
+
+    showSummary() {
+        const correctCount = this.results.filter(r => r.correct).length;
+        const total = this.results.length;
+        
+        let html = `
+            <div class="summary-score" style="text-align: center; font-size: 24px; margin-bottom: 20px;">
+                <span style="color: ${correctCount === total ? '#00ff00' : '#ffd700'};">
+                    ${correctCount} / ${total}
+                </span> правильных ответов
+            </div>
+        `;
+        
+        html += '<div class="summary-list">';
+        
+        this.results.forEach((result, index) => {
+            html += `
+                <div class="summary-item ${result.correct ? 'correct' : 'incorrect'}">
+                    <div>
+                        <span class="step-name">${index + 1}. ${result.step}</span>
+                        <div class="action-taken">
+                            ${result.correct ? '✓' : '✗'} Ваше действие: ${result.action}
+                            ${!result.correct ? `<br>✓ Правильно: ${result.expected}` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        
+        this.elements.summaryContent.innerHTML = html;
+        this.elements.testSummary.style.display = 'block';
+        
+        // Прокручиваем к результатам
+        this.elements.testSummary.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    window.emulator = new PokerEmulator();
+});

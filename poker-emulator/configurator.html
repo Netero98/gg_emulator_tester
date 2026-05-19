@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Configurator - Настройка позиций кнопок</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        .upload-section {
+            margin-bottom: 20px;
+        }
+        
+        .upload-section input[type="file"] {
+            display: none;
+        }
+        
+        .upload-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #ffd700;
+            color: #1a1a2e;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .upload-btn:hover {
+            background: #ffed4e;
+        }
+        
+        .config-panel {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+        
+        .image-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            min-height: 600px;
+        }
+        
+        .image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        /* Невидимая область клика для настройки */
+        .click-area {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            /* В режиме редактирования показываем границы для удобства */
+            background: rgba(255, 0, 0, 0.15);
+            border: 2px dashed rgba(255, 100, 100, 0.6);
+            border-radius: 4px;
+        }
+        
+        .click-area:hover {
+            background: rgba(255, 0, 0, 0.25);
+            border-color: rgba(255, 150, 150, 0.8);
+        }
+        
+        .click-area.dragging {
+            background: rgba(255, 0, 0, 0.35);
+            z-index: 1000;
+        }
+        
+        .click-area-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 3px rgba(0,0,0,0.8);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background: #2d2d44;
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-row button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .btn-add {
+            background: #00aa00;
+            color: #fff;
+        }
+        
+        .btn-clear {
+            background: #aa0000;
+            color: #fff;
+        }
+        
+        .output-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .output-section h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+        
+        .output-code {
+            background: #0d0d1a;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #00ff00;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .copy-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #444;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .copy-btn:hover {
+            background: #555;
+        }
+        
+        .button-list {
+            margin-top: 15px;
+        }
+        
+        .button-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        
+        .button-item button {
+            padding: 4px 8px;
+            background: #aa0000;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        
+        .pos-display {
+            color: #00ff00;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Button Configurator</h1>
+        
+        <div class="instructions">
+            <strong>Как использовать:</strong>
+            <ol>
+                <li>Загрузите скриншот покерного стола</li>
+                <li>Настройте параметры кнопки (тип, текст, сумма)</li>
+                <li>Нажмите "Добавить кнопку"</li>
+                <li>Перетащите область на нужное место поверх кнопки на скриншоте</li>
+                <li>Повторите для всех кнопок</li>
+                <li>Скопируйте сгенерированный код в scenarios.js</li>
+            </ol>
+        </div>
+        
+        <div class="upload-section">
+            <label for="screenshot-upload" class="upload-btn">
+                📁 Загрузить скриншот
+            </label>
+            <input type="file" id="screenshot-upload" accept="image/*">
+        </div>
+        
+        <div class="config-panel">
+            <div class="image-container" id="image-container">
+                <div style="padding: 40px; text-align: center; color: #666;">
+                    Загрузите скриншот, чтобы начать
+                </div>
+            </div>
+            
+            <div class="controls">
+                <h3 style="color: #ffd700; margin-bottom: 15px;">Настройка кнопки</h3>
+                
+                <div class="control-group">
+                    <label>Тип действия:</label>
+                    <select id="btn-type">
+                        <option value="fold">Fold</option>
+                        <option value="check">Check</option>
+                        <option value="call">Call</option>
+                        <option value="bet">Bet</option>
+                        <option value="raise">Raise</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Текст кнопки:</label>
+                    <input type="text" id="btn-label" value="Fold" placeholder="Fold">
+                </div>
+                
+                <div class="control-group">
+                    <label>Сумма (опционально):</label>
+                    <input type="text" id="btn-amount" placeholder="$0.02">
+                </div>
+                
+                <div class="control-group">
+                    <label>Ширина (px):</label>
+                    <input type="number" id="btn-width" value="140">
+                </div>
+                
+                <div class="control-group">
+                    <label>Высота (px):</label>
+                    <input type="number" id="btn-height" value="65">
+                </div>
+                
+                <div class="btn-row">
+                    <button class="btn-add" onclick="addButton()">➕ Добавить</button>
+                    <button class="btn-clear" onclick="clearButtons()">🗑 Очистить</button>
+                </div>
+                
+                <div class="button-list" id="button-list">
+                    <!-- Список добавленных кнопок -->
+                </div>
+                
+                <div class="output-section">
+                    <h3>Сгенерированный код:</h3>
+                    <pre class="output-code" id="output-code">// Добавьте кнопки, чтобы сгенерировать код</pre>
+                    <button class="copy-btn" onclick="copyCode()">📋 Копировать код</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let buttons = [];
+        let buttonIdCounter = 0;
+        let containerRect = null;
+
+        // Загрузка скриншота
+        document.getElementById('screenshot-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const container = document.getElementById('image-container');
+                    container.innerHTML = `<img src="${event.target.result}" id="screenshot-img" alt="Screenshot">`;
+                    
+                    setTimeout(() => {
+                        const img = document.getElementById('screenshot-img');
+                        containerRect = img.getBoundingClientRect();
+                    }, 100);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Обновление label при изменении типа
+        document.getElementById('btn-type').addEventListener('change', function() {
+            const type = this.value;
+            const labelMap = {
+                'fold': 'Fold',
+                'check': 'Check',
+                'call': 'Call',
+                'bet': 'Bet',
+                'raise': 'Raise to'
+            };
+            document.getElementById('btn-label').value = labelMap[type] || '';
+        });
+
+        function addButton() {
+            const type = document.getElementById('btn-type').value;
+            const label = document.getElementById('btn-label').value;
+            const amount = document.getElementById('btn-amount').value;
+            const width = parseInt(document.getElementById('btn-width').value) || 140;
+            const height = parseInt(document.getElementById('btn-height').value) || 65;
+            
+            const button = {
+                id: `btn-${buttonIdCounter++}`,
+                type: type,
+                label: label,
+                amount: amount,
+                width: width,
+                height: height,
+                x: 50, // Центр по умолчанию
+                y: 50
+            };
+            
+            buttons.push(button);
+            renderButton(button);
+            updateButtonList();
+            generateCode();
+        }
+
+        function renderButton(button) {
+            const container = document.getElementById('image-container');
+            const areaEl = document.createElement('div');
+            areaEl.className = 'click-area';
+            areaEl.id = button.id;
+            areaEl.style.left = `calc(${button.x}% - ${button.width / 2}px)`;
+            areaEl.style.top = `calc(${button.y}% - ${button.height / 2}px)`;
+            areaEl.style.width = `${button.width}px`;
+            areaEl.style.height = `${button.height}px`;
+            
+            // Добавляем метку для удобства редактирования
+            areaEl.innerHTML = `<div class="click-area-label">${button.label}</div>`;
+            
+            // Drag functionality
+            let isDragging = false;
+            let startX, startY;
+            
+            areaEl.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                areaEl.classList.add('dragging');
+                startX = e.clientX - areaEl.offsetLeft;
+                startY = e.clientY - areaEl.offsetTop;
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                
+                const container = document.getElementById('image-container');
+                const rect = container.getBoundingClientRect();
+                
+                let newX = e.clientX - rect.left - button.width / 2;
+                let newY = e.clientY - rect.top - button.height / 2;
+                
+                // Ограничения
+                newX = Math.max(0, Math.min(newX, rect.width - button.width));
+                newY = Math.max(0, Math.min(newY, rect.height - button.height));
+                
+                areaEl.style.left = `${newX}px`;
+                areaEl.style.top = `${newY}px`;
+                
+                // Обновляем проценты
+                button.x = ((newX + button.width / 2) / rect.width) * 100;
+                button.y = ((newY + button.height / 2) / rect.height) * 100;
+                
+                updateButtonList();
+                generateCode();
+            });
+            
+            document.addEventListener('mouseup', function() {
+                if (isDragging) {
+                    isDragging = false;
+                    areaEl.classList.remove('dragging');
+                }
+            });
+            
+            container.appendChild(areaEl);
+        }
+
+        function clearButtons() {
+            buttons = [];
+            buttonIdCounter = 0;
+            const container = document.getElementById('image-container');
+            const img = container.querySelector('img');
+            if (img) {
+                container.innerHTML = '';
+                container.appendChild(img);
+            }
+            updateButtonList();
+            generateCode();
+        }
+
+        function updateButtonList() {
+            const list = document.getElementById('button-list');
+            list.innerHTML = buttons.map((btn, idx) => `
+                <div class="button-item">
+                    <span>${btn.label} ${btn.amount || ''}</span>
+                    <span class="pos-display">x:${btn.x.toFixed(1)}% y:${btn.y.toFixed(1)}%</span>
+                    <button onclick="removeButton(${idx})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function removeButton(index) {
+            const btn = buttons[index];
+            const el = document.getElementById(btn.id);
+            if (el) el.remove();
+            buttons.splice(index, 1);
+            updateButtonList();
+            generateCode();
+        }
+
+        function generateCode() {
+            if (buttons.length === 0) {
+                document.getElementById('output-code').textContent = '// Добавьте кнопки, чтобы сгенерировать код';
+                return;
+            }
+            
+            const code = buttons.map(btn => `                {
+                    id: '${btn.type}',
+                    type: '${btn.type}',
+                    label: '${btn.label}',${btn.amount ? `
+                    amount: '${btn.amount}',` : ''}
+                    x: ${btn.x.toFixed(1)},
+                    y: ${btn.y.toFixed(1)},
+                    width: ${btn.width},
+                    height: ${btn.height}
+                }`).join(',\n');
+            
+            document.getElementById('output-code').textContent = code;
+        }
+
+        function copyCode() {
+            const code = document.getElementById('output-code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Скопировано!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+        
+        // Обновление размеров контейнера при изменении окна
+        window.addEventListener('resize', () => {
+            const img = document.getElementById('screenshot-img');
+            if (img) {
+                containerRect = img.getBoundingClientRect();
+            }
+        });
+    </script>
+</body>
+</html>

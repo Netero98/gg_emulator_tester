@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Emulator - Тренажёр покерных ситуаций</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Poker Emulator</h1>
+            <div class="test-selector">
+                <label for="scenario-select">Выберите тест:</label>
+                <select id="scenario-select">
+                    <option value="aks_3bet_cbet">AKs - 3бет -> цбет -> чек -> фолд</option>
+                </select>
+                <label class="debug-toggle">
+                    <input type="checkbox" id="debug-mode"> Показать области
+                </label>
+            </div>
+        </div>
+
+        <!-- Test Status -->
+        <div class="status-panel">
+            <div class="progress">
+                <span>Шаг: <span id="current-step">1</span> / <span id="total-steps">4</span></span>
+            </div>
+            <div class="result" id="result-display"></div>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="game-screen" id="game-screen">
+            <!-- Background image (screenshot) -->
+            <div class="screenshot-bg" id="screenshot-bg"></div>
+            
+            <!-- Невидимые области для кликов поверх нативных кнопок -->
+            <div class="click-overlay" id="click-overlay">
+                <!-- Click areas will be dynamically placed here -->
+            </div>
+
+            <!-- Action hint -->
+            <div class="action-hint" id="action-hint"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button id="reset-btn" class="control-btn">Сбросить</button>
+            <button id="next-btn" class="control-btn" disabled>Следующий шаг</button>
+        </div>
+
+        <!-- Test Results -->
+        <div class="test-summary" id="test-summary" style="display: none;">
+            <h2>Результат теста</h2>
+            <div id="summary-content"></div>
+        </div>
+    </div>
+
+    <script src="js/scenarios.js"></script>
+    <script src="js/emulator.js"></script>
+</body>
+</html>
