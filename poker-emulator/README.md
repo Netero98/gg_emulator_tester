@@ -112,7 +112,7 @@ GitHub Pages / CDN          GitHub Repository
 }
 ```
 
-### Шаг 4: Добавьте в репозиторий
+### Шаг 3: Добавьте в репозиторий
 
 1. **Откройте `js/scenarios.js`**
 2. **Добавьте код** в объект `SCENARIOS`:
@@ -128,22 +128,14 @@ const SCENARIOS = {
 };
 ```
 
-3. **Добавьте опцию в `index.html`**:
-```html
-<select id="scenario-select">
-    <option value="aks_3bet_cbet">AKs - 3бет -> цбет -> чек -> фолд</option>
-    <option value="qq_4bet_pot">QQ - 4бет пот</option>  <!-- НОВОЕ -->
-</select>
-```
-
-4. **Закоммитьте и запушьте**:
+3. **Закоммитьте и запушьте**:
 ```bash
 git add .
 git commit -m "Add QQ 4bet pot test scenario"
 git push origin main
 ```
 
-### Шаг 5: Готово! 🎉
+### Шаг 4: Готово! 🎉
 
 Тест автоматически доступен на GitHub Pages!
 

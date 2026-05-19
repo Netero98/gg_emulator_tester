@@ -14,7 +14,12 @@ class PokerEmulator {
         
         this.initElements();
         this.initEventListeners();
-        this.loadScenario('aks_3bet_cbet');
+        
+        // Загружаем первый доступный сценарий
+        const firstScenarioId = Object.keys(SCENARIOS)[0];
+        if (firstScenarioId) {
+            this.loadScenario(firstScenarioId);
+        }
     }
 
     initElements() {
@@ -33,6 +38,22 @@ class PokerEmulator {
             summaryContent: document.getElementById('summary-content'),
             debugCheckbox: document.getElementById('debug-mode')
         };
+        
+        // Генерируем опции селекта из SCENARIOS
+        this.populateScenarioSelect();
+    }
+    
+    populateScenarioSelect() {
+        const select = this.elements.scenarioSelect;
+        select.innerHTML = ''; // Очищаем
+        
+        // Проходим по всем сценариям в SCENARIOS
+        for (const [id, scenario] of Object.entries(SCENARIOS)) {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = scenario.name || id;
+            select.appendChild(option);
+        }
     }
 
     initEventListeners() {
