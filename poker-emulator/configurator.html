@@ -472,6 +472,15 @@
                             <option value="call">Call</option>
                             <option value="bet">Bet</option>
                             <option value="raise">Raise</option>
+                            <optgroup label="Сайзы (префикс bet_)">
+                                <option value="bet_33">33% пота</option>
+                                <option value="bet_50">50% пота</option>
+                                <option value="bet_75">75% пота</option>
+                                <option value="bet_100">100% пота (All-in)</option>
+                            </optgroup>
+                            <optgroup label="Ползунок">
+                                <option value="slider_click">Клик по ползунку (N+2×)</option>
+                            </optgroup>
                         </select>
                     </div>
                     
@@ -492,6 +501,12 @@
                             <label>Высота (px):</label>
                             <input type="number" id="btn-height" value="65">
                         </div>
+                    </div>
+                    
+                    <div class="control-group" id="slider-clicks-group" style="display: none; margin-top: 10px;">
+                        <label>Количество кликов по ползунку:</label>
+                        <input type="number" id="slider-clicks" value="1" min="1" max="20" style="width: 100px;">
+                        <span style="color: #888; font-size: 12px;">Сколько раз бот должен кликнуть</span>
                     </div>
                     
                     <div class="btn-row">
@@ -630,13 +645,13 @@
                 alert('Сначала загрузите изображение!');
                 return;
             }
-            
+
             const type = document.getElementById('btn-type').value;
             const label = document.getElementById('btn-label').value;
             const amount = document.getElementById('btn-amount').value;
             const width = parseInt(document.getElementById('btn-width').value) || 140;
             const height = parseInt(document.getElementById('btn-height').value) || 65;
-            
+
             const button = {
                 id: `btn-${buttonIdCounter++}`,
                 type: type,
@@ -647,7 +662,12 @@
                 x: 50,
                 y: 85
             };
-            
+
+            // Для ползунка сохраняем количество кликов
+            if (type === 'slider_click') {
+                button.sliderClicks = parseInt(document.getElementById('slider-clicks').value) || 1;
+            }
+
             streetData[currentStreet].buttons.push(button);
             renderButton(button);
             updateButtonList();
@@ -721,19 +741,24 @@
         function updateButtonList() {
             const list = document.getElementById('button-list');
             const buttons = streetData[currentStreet].buttons;
-            
+
             if (buttons.length === 0) {
                 list.innerHTML = '<div style="color: #666; font-size: 13px;">Нет кнопок</div>';
                 return;
             }
-            
-            list.innerHTML = buttons.map((btn, idx) => `
+
+            list.innerHTML = buttons.map((btn, idx) => {
+                let extraInfo = '';
+                if (btn.type === 'slider_click' && btn.sliderClicks) {
+                    extraInfo = ` (${btn.sliderClicks}× клик)`;
+                }
+                return `
                 <div class="button-item">
-                    <span>${btn.label} ${btn.amount || ''}</span>
+                    <span>${btn.label}${btn.amount ? ' ' + btn.amount : ''}${extraInfo}</span>
                     <span class="pos-display">${btn.x.toFixed(1)}%, ${btn.y.toFixed(1)}%</span>
                     <button onclick="removeButton(${idx})">×</button>
                 </div>
-            `).join('');
+            `}).join('');
         }
         
         function removeButton(index) {
@@ -786,12 +811,25 @@
             const type = this.value;
             const labelMap = {
                 'fold': 'Fold',
-                'check': 'Check', 
+                'check': 'Check',
                 'call': 'Call',
                 'bet': 'Bet',
-                'raise': 'Raise to'
+                'raise': 'Raise to',
+                'bet_33': '33%',
+                'bet_50': '50%',
+                'bet_75': '75%',
+                'bet_100': '100%',
+                'slider_click': 'Slider'
             };
             document.getElementById('btn-label').value = labelMap[type] || '';
+            
+            // Показываем/скрываем поле для количества кликов
+            const sliderClicksGroup = document.getElementById('slider-clicks-group');
+            if (type === 'slider_click') {
+                sliderClicksGroup.style.display = 'block';
+            } else {
+                sliderClicksGroup.style.display = 'none';
+            }
         });
         
         // Генерация кода
@@ -839,7 +877,12 @@
                 amount: '${correctAction.amount || ''}'
             },
             buttons: [
-${data.buttons.map(btn => `                {
+${data.buttons.map(btn => {
+                let extraProps = '';
+                if (btn.type === 'slider_click' && btn.sliderClicks) {
+                    extraProps = `,\n                    sliderClicks: ${btn.sliderClicks}`;
+                }
+                return `                {
                     id: '${btn.type}',
                     type: '${btn.type}',
                     label: '${btn.label}',
@@ -847,8 +890,9 @@ ${data.buttons.map(btn => `                {
                     x: ${btn.x.toFixed(1)},
                     y: ${btn.y.toFixed(1)},
                     width: ${btn.width},
-                    height: ${btn.height}
-                }`).join(',\n')}
+                    height: ${btn.height}${extraProps}
+                }`;
+            }).join(',\n')}
             ],
             feedback: {
                 correct: '${feedbackCorrect}',

@@ -24,7 +24,7 @@ class PokerEmulator {
 
     initElements() {
         this.elements = {
-            screenshotBg: document.getElementById('screenshot-bg'),
+            screenshotImg: document.getElementById('screenshot-img'),
             clickOverlay: document.getElementById('click-overlay'),
             gameScreen: document.getElementById('game-screen'),
             actionHint: document.getElementById('action-hint'),
@@ -106,39 +106,45 @@ class PokerEmulator {
 
     renderStep() {
         const step = this.currentScenario.steps[this.currentStepIndex];
-        
+
         // Обновляем счётчик шагов
         this.elements.currentStep.textContent = this.currentStepIndex + 1;
-        
-        // Устанавливаем фон (скриншот)
-        this.elements.screenshotBg.style.backgroundImage = `url(${step.image})`;
-        
+
         // Очищаем предыдущие результаты
         this.elements.resultDisplay.className = 'result waiting';
         this.elements.resultDisplay.textContent = step.instruction;
-        
+
         // Скрываем подсказку
         this.elements.actionHint.classList.remove('visible');
-        
+
         // Разблокируем области для кликов
         this.isWaitingForAction = true;
-        
+
         // Обновляем состояние кнопки "Следующий шаг"
         this.elements.nextBtn.disabled = true;
-        
-        // Отрисовываем невидимые области кликов
-        this.renderClickAreas();
+
+        // Устанавливаем src изображения и ждем загрузки
+        this.elements.screenshotImg.src = step.image;
+        this.elements.screenshotImg.onload = () => {
+            // Отрисовываем невидимые области кликов только после загрузки изображения
+            this.renderClickAreas();
+        };
+        this.elements.screenshotImg.onerror = () => {
+            console.error('Ошибка загрузки изображения:', step.image);
+            this.renderClickAreas();
+        };
     }
 
     renderClickAreas() {
         const step = this.currentScenario.steps[this.currentStepIndex];
         this.elements.clickOverlay.innerHTML = '';
 
-        const containerWidth = this.elements.screenshotBg.offsetWidth;
-        const containerHeight = this.elements.screenshotBg.offsetHeight;
+        // Используем размеры изображения, а не контейнера
+        const imgWidth = this.elements.screenshotImg.offsetWidth;
+        const imgHeight = this.elements.screenshotImg.offsetHeight;
 
         step.buttons.forEach(buttonConfig => {
-            const clickArea = this.createClickArea(buttonConfig, containerWidth, containerHeight);
+            const clickArea = this.createClickArea(buttonConfig, imgWidth, imgHeight);
             this.elements.clickOverlay.appendChild(clickArea);
         });
     }
@@ -151,52 +157,81 @@ class PokerEmulator {
         area.setAttribute('data-action', config.type);
         area.setAttribute('data-label', config.label);
         area.setAttribute('data-amount', config.amount || '');
-        
+
+        // Для ползунка сохраняем количество кликов
+        if (config.type === 'slider_click' && config.sliderClicks) {
+            area.setAttribute('data-slider-clicks', config.sliderClicks);
+        }
+
         // Позиционируем область в процентах относительно контейнера
         const left = (config.x / 100) * containerWidth - (config.width / 2);
         const top = (config.y / 100) * containerHeight - (config.height / 2);
-        
+
         area.style.left = `${left}px`;
         area.style.top = `${top}px`;
         area.style.width = `${config.width}px`;
         area.style.height = `${config.height}px`;
-        
+
         // Для доступности (screen readers) добавляем aria-label
-        area.setAttribute('aria-label', `${config.label} ${config.amount || ''}`);
-        
+        let ariaLabel = `${config.label} ${config.amount || ''}`;
+        if (config.type === 'slider_click' && config.sliderClicks) {
+            ariaLabel += ` (${config.sliderClicks} кликов)`;
+        }
+        area.setAttribute('aria-label', ariaLabel);
+
         // Обработчик клика - невидимый для бота, но регистрирует действие
         area.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             this.handleAction(config);
         });
-        
+
         // Также поддерживаем touch для мобильных устройств
         area.addEventListener('touchstart', (e) => {
             e.preventDefault();
             this.handleAction(config);
         });
-        
+
         return area;
     }
 
     handleAction(buttonConfig) {
         if (!this.isWaitingForAction) return;
-        
+
         const step = this.currentScenario.steps[this.currentStepIndex];
         const isCorrect = buttonConfig.type === step.correctAction.type;
-        
+
         // Блокируем дальнейшие действия
         this.isWaitingForAction = false;
-        
+
+        // Формируем описание действия
+        let actionDesc = buttonConfig.label;
+        if (buttonConfig.amount) {
+            actionDesc += ` ${buttonConfig.amount}`;
+        }
+        if (buttonConfig.type === 'slider_click' && buttonConfig.sliderClicks) {
+            actionDesc += ` (${buttonConfig.sliderClicks}× клик)`;
+        }
+
+        // Формируем описание ожидаемого действия
+        let expectedDesc = step.correctAction.label;
+        if (step.correctAction.amount) {
+            expectedDesc += ` ${step.correctAction.amount}`;
+        }
+        if (step.correctAction.type === 'slider_click' && step.correctAction.sliderClicks) {
+            expectedDesc += ` (${step.correctAction.sliderClicks}× клик)`;
+        }
+
         // Сохраняем результат
         this.results.push({
             step: step.name,
-            action: buttonConfig.label + (buttonConfig.amount ? ` ${buttonConfig.amount}` : ''),
+            action: actionDesc,
             correct: isCorrect,
-            expected: step.correctAction.label + (step.correctAction.amount ? ` ${step.correctAction.amount}` : '')
+            expected: expectedDesc,
+            actionType: buttonConfig.type,
+            expectedType: step.correctAction.type
         });
-        
+
         // Показываем результат теста (только в панели статуса, не на кнопках)
         if (isCorrect) {
             this.elements.resultDisplay.className = 'result correct';
@@ -207,13 +242,13 @@ class PokerEmulator {
             this.elements.resultDisplay.textContent = `✗ ${step.feedback.incorrect}`;
             console.log(`[TEST] ✗ Неправильно: ${buttonConfig.type}, ожидалось: ${step.correctAction.type}`);
         }
-        
+
         // Показываем подсказку с правильным действием
         this.showActionHint(step.correctAction);
-        
+
         // Разблокируем кнопку "Следующий шаг"
         this.elements.nextBtn.disabled = false;
-        
+
         // Если это последний шаг, показываем итоги
         if (this.currentStepIndex === this.currentScenario.steps.length - 1) {
             setTimeout(() => this.showSummary(), 1500);
@@ -222,12 +257,19 @@ class PokerEmulator {
 
     showActionHint(correctAction) {
         const hint = this.elements.actionHint;
+
+        // Формируем текст подсказки
+        let actionText = `${correctAction.label} ${correctAction.amount || ''}`;
+        if (correctAction.type === 'slider_click' && correctAction.sliderClicks) {
+            actionText += ` (${correctAction.sliderClicks}× клик)`;
+        }
+
         hint.innerHTML = `
             <div>Правильное действие:</div>
-            <div style="font-size: 24px; margin-top: 10px;">${correctAction.label} ${correctAction.amount || ''}</div>
+            <div style="font-size: 24px; margin-top: 10px;">${actionText}</div>
         `;
         hint.classList.add('visible');
-        
+
         // Автоматически скрываем через 3 секунды
         setTimeout(() => {
             hint.classList.remove('visible');

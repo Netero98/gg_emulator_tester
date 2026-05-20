@@ -119,8 +119,8 @@ const SCENARIOS = {
                         type: 'fold',
                         label: 'Fold',
                         amount: '',
-                        x: 63.4,
-                        y: 84.2,
+                        x: 63.6,
+                        y: 84.0,
                         width: 100,
                         height: 60
                     }
