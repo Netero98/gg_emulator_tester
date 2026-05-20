@@ -400,7 +400,7 @@
             <strong>☁️ Облачный workflow:</strong>
             <ol>
                 <li>Загрузите скриншоты в интернет (GitHub Pages, imgur, etc.)</li>
-                <li>Введите название теста и URL базовой папки</li>
+                <li>Введите название теста</li>
                 <li>Для каждой улицы укажите URL изображения</li>
                 <li>Настройте кнопки и разместите их на скриншоте</li>
                 <li>Скопируйте сгенерированный код в scenarios.js</li>
@@ -413,25 +413,12 @@
             <div class="setup-grid">
                 <div class="control-group">
                     <label>Название теста (ID):</label>
-                    <input type="text" id="test-id" placeholder="например: qq_4bet_pot" 
-                           oninput="updateUrlPreview()">
+                    <input type="text" id="test-id" placeholder="например: qq_4bet_pot">
                 </div>
                 <div class="control-group">
                     <label>Название для отображения:</label>
                     <input type="text" id="test-name" placeholder="например: QQ - 4бет пот">
                 </div>
-                <div class="control-group">
-                    <label>Базовый URL папки с изображениями:</label>
-                    <input type="text" id="base-url" placeholder="https://yourname.github.io/poker-images/"
-                           oninput="updateUrlPreview()">
-                </div>
-            </div>
-            <div class="url-preview" id="url-preview">
-                Предполагаемые URL:<br>
-                {base-url}{test-id}_preflop.png<br>
-                {base-url}{test-id}_flop.png<br>
-                {base-url}{test-id}_turn.png<br>
-                {base-url}{test-id}_river.png
             </div>
         </div>
         
@@ -806,7 +793,6 @@
             const testId = document.getElementById('test-id').value || 'my_test';
             const testName = document.getElementById('test-name').value || 'Новый тест';
             const testDesc = document.getElementById('test-desc').value || '';
-            const baseUrl = document.getElementById('base-url').value || '';
             
             const streets = ['preflop', 'flop', 'turn', 'river'];
             const streetLabels = {
@@ -886,21 +872,6 @@ ${stepsCode}    ]
             });
         }
         
-        function updateUrlPreview() {
-            const testId = document.getElementById('test-id').value || '[test-id]';
-            const baseUrl = document.getElementById('base-url').value || '[base-url]';
-            
-            document.getElementById('url-preview').innerHTML = `
-                Предполагаемые URL:<br>
-                ${baseUrl}${testId}_preflop.png<br>
-                ${baseUrl}${testId}_flop.png<br>
-                ${baseUrl}${testId}_turn.png<br>
-                ${baseUrl}${testId}_river.png<br><br>
-                <span style="color: #888;">Или используйте прямые URL (imgur, etc.)</span>
-            `;
-            generateCode();
-        }
-        
         function downloadScenario() {
             const testId = document.getElementById('test-id').value || 'my_test';
             const code = document.getElementById('output-code').textContent;
@@ -915,7 +886,7 @@ ${stepsCode}    ]
         }
         
         // Инициализация
-        updateUrlPreview();
+        generateCode();
     </script>
 </body>
 </html>
