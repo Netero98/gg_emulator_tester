@@ -270,7 +270,11 @@ class PokerEmulator {
             // Проверяем базовый размер
             let isBaseSizeCorrect = true;
             if (expectedSize) {
+                // В сценарии указан сайз - он должен быть выбран и совпадать
                 isBaseSizeCorrect = this.selectedSize === `bet_${expectedSize}`;
+            } else {
+                // В сценарии сайз не указан - его не должно быть
+                isBaseSizeCorrect = !this.selectedSize;
             }
 
             // Проверяем количество кликов по ползунку
@@ -339,15 +343,26 @@ class PokerEmulator {
             } else {
                 this.elements.resultDisplay.className = 'result incorrect';
                 if (sizeError) {
-                    if (!isBaseSizeCorrect) {
-                        this.elements.resultDisplay.textContent = `✗ Неправильный базовый размер. ${step.feedback.incorrect}`;
+                    if (expectedSize && !this.selectedSize) {
+                        this.elements.resultDisplay.textContent = `✗ Не выбран базовый сайз (${expectedSize}%). ${step.feedback.incorrect}`;
+                    } else if (!expectedSize && this.selectedSize) {
+                        this.elements.resultDisplay.textContent = `✗ Выбран лишний сайз. В сценарии сайз не требуется. ${step.feedback.incorrect}`;
+                    } else if (!isBaseSizeCorrect) {
+                        const actualSize = this.selectedSize ? this.selectedSize.replace('bet_', '') : 'не выбран';
+                        this.elements.resultDisplay.textContent = `✗ Неправильный базовый сайз: ${actualSize}% вместо ${expectedSize}%. ${step.feedback.incorrect}`;
                     } else if (!isSliderClicksCorrect) {
-                        this.elements.resultDisplay.textContent = `✗ Неправильное количество кликов по ползунку (${actualSliderClicks} вместо ${expectedSliderClicks}). ${step.feedback.incorrect}`;
+                        if (expectedSliderClicks > 0 && actualSliderClicks === 0) {
+                            this.elements.resultDisplay.textContent = `✗ Не нажат ползунок (нужно ${expectedSliderClicks} кликов). ${step.feedback.incorrect}`;
+                        } else if (expectedSliderClicks === 0 && actualSliderClicks > 0) {
+                            this.elements.resultDisplay.textContent = `✗ Лишние клики по ползунку (${actualSliderClicks}, а нужно 0). ${step.feedback.incorrect}`;
+                        } else {
+                            this.elements.resultDisplay.textContent = `✗ Неправильное количество кликов по ползунку: ${actualSliderClicks} вместо ${expectedSliderClicks}. ${step.feedback.incorrect}`;
+                        }
                     } else {
                         this.elements.resultDisplay.textContent = `✗ Неправильный размер ставки. ${step.feedback.incorrect}`;
                     }
                 } else {
-                    this.elements.resultDisplay.textContent = `✗ ${step.feedback.incorrect}`;
+                    this.elements.resultDisplay.textContent = `✗ Неправильное действие. Ожидалось: ${step.correctAction.label}. ${step.feedback.incorrect}`;
                 }
                 console.log(`[TEST] ✗ Неправильно: ${actionDesc}, ожидалось: ${expectedDesc}`);
             }

@@ -402,13 +402,11 @@
                 <li>Загрузите скриншоты в интернет (GitHub Pages, imgur, etc.)</li>
                 <li>Введите название теста</li>
                 <li>Для каждой улицы укажите URL изображения</li>
-                <li>Настройте кнопки: сайзы (33%, 50%, 75%, 100%), ползунок, действия (Bet/Raise)</li>
-                <li>Выберите правильный базовый сайз (опционально) и количество кликов по ползунку (0 = без ползунка)</li>
-                <li>Выберите правильное действие</li>
+                <li>Настройте кнопки: сайзы (33%, 50%, 75%, 100%), ползунок, действия (Fold/Check/Call/Bet/Raise)</li>
                 <li>Скопируйте сгенерированный код в scenarios.js</li>
                 <li>Закоммитьте изменения - тест сразу доступен онлайн!</li>
             </ol>
-            <p style="margin-top: 10px; color: #888;"><strong>💡 Подсказка:</strong> Ползунок используется для точной настройки сайза после выбора базового. Например: 100% + 2 клика по ползунку = перебор аллина.</p>
+            <p style="margin-top: 10px; color: #888;"><strong>💡 Подсказка:</strong> Правильное действие определяется автоматически - это первая кнопка действия (Fold/Check/Call/Bet/Raise) в списке. Если нужна проверка сайза - добавьте кнопки сайзов, бот должен сначала выбрать сайз, потом действие.</p>
         </div>
         
         <!-- Test Setup -->
@@ -452,7 +450,8 @@
                 <div class="image-toolbar">
                     <label>URL изображения для <span id="current-street-label">Префлоп</span>:</label>
                     <input type="text" id="image-url" placeholder="https://..."
-                           onchange="loadImageFromUrl()">
+                           onchange="loadImageFromUrl()"
+                           onkeydown="if(event.key==='Enter'){event.preventDefault();loadImageFromUrl();}">
                 </div>
                 <div class="image-container" id="image-container">
                     <div style="color: #666; text-align: center;">
@@ -526,37 +525,23 @@
                     </div>
                 </div>
                 
-                <!-- Correct Action -->
+                <!-- Correct Action Parameters -->
                 <div class="panel">
-                    <h3>✅ Правильное действие</h3>
+                    <h3>🎯 Параметры правильного действия</h3>
                     <div class="control-group" style="margin-bottom: 10px;">
-                        <label>Базовый размер ставки (опционально):</label>
+                        <label>Базовый сайз (опционально):</label>
                         <select id="correct-size" onchange="updateCorrectAction()">
                             <option value="">-- Не выбрано --</option>
-                            <option value="33">33% пота</option>
-                            <option value="50">50% пота</option>
-                            <option value="75">75% пота</option>
-                            <option value="100">100% пота (All-in)</option>
+                            <option value="33">33%</option>
+                            <option value="50">50%</option>
+                            <option value="75">75%</option>
+                            <option value="100">100%</option>
                         </select>
                     </div>
                     <div class="control-group" style="margin-bottom: 10px;">
-                        <label>Дополнительные клики по ползунку:</label>
-                        <input type="number" id="correct-slider-clicks" value="0" min="0" max="20" style="width: 100px;" onchange="updateCorrectAction()">
-                        <span style="color: #888; font-size: 12px;">0 = без кликов, используется только базовый сайз</span>
-                    </div>
-                    <div class="control-group" style="margin-bottom: 10px;">
-                        <label>Действие:</label>
-                        <select id="correct-action" onchange="updateCorrectAction()">
-                            <option value="">-- Не выбрано --</option>
-                        </select>
-                    </div>
-                    <div class="control-group">
-                        <label>Объяснение (если правильно):</label>
-                        <textarea id="feedback-correct" placeholder="Отлично! Это правильное решение потому что..." oninput="generateCode()"></textarea>
-                    </div>
-                    <div class="control-group">
-                        <label>Объяснение (если неправильно):</label>
-                        <textarea id="feedback-incorrect" placeholder="Неправильно. Лучше было бы..." oninput="generateCode()"></textarea>
+                        <label>Кликов по ползунку:</label>
+                        <input type="number" id="correct-slider-clicks" value="0" min="0" max="20" style="width: 80px;" onchange="updateCorrectAction()">
+                        <span style="color: #888; font-size: 12px;">0 = без ползунка</span>
                     </div>
                 </div>
             </div>
@@ -569,7 +554,7 @@
                 Скопируйте код и вставьте в js/scenarios.js. Опция в селекте появится автоматически!
             </p>
             <div id="generation-status" style="background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); padding: 10px; border-radius: 5px; margin-bottom: 10px; color: #ffa500; font-size: 13px;">
-                ⚠️ Для генерации кода нужно: 1) URL изображения, 2) Кнопки (сайзы + ползунок + действия), 3) Выбрать правильное действие. Базовый сайз и клики по ползунку опциональны.
+                ⚠️ Для генерации кода нужно: 1) URL изображения, 2) Кнопки действий (Fold/Check/Call/Bet/Raise). Правильное действие определяется автоматически - первая кнопка действия в списке.
             </div>
             <pre class="output-code" id="output-code">// Заполните все поля выше, чтобы сгенерировать код</pre>
             <button class="copy-btn" onclick="copyCode()">📋 Копировать код</button>
@@ -646,9 +631,8 @@
             
             // Обновляем список кнопок
             updateButtonList();
-            updateCorrectActionSelect();
             
-            // Восстанавливаем выбранный размер
+            // Восстанавливаем параметры правильного действия
             const correctSizeSelect = document.getElementById('correct-size');
             const correctSliderClicksInput = document.getElementById('correct-slider-clicks');
             
@@ -702,7 +686,7 @@
             streetData[currentStreet].buttons.push(button);
             renderButton(button);
             updateButtonList();
-            updateCorrectActionSelect();
+            updateCorrectAction();
             generateCode();
         }
         
@@ -765,10 +749,10 @@
                 container.appendChild(img);
             }
             updateButtonList();
-            updateCorrectActionSelect();
+            updateCorrectAction();
             generateCode();
         }
-        
+
         function updateButtonList() {
             const list = document.getElementById('button-list');
             const buttons = streetData[currentStreet].buttons;
@@ -799,53 +783,30 @@
             if (el) el.remove();
             buttons.splice(index, 1);
             updateButtonList();
-            updateCorrectActionSelect();
+            updateCorrectAction();
             generateCode();
-        }
-        
-        function updateCorrectActionSelect() {
-            const select = document.getElementById('correct-action');
-            const buttons = streetData[currentStreet].buttons;
-            const currentValue = select.value;
-
-            select.innerHTML = '<option value="">-- Не выбрано --</option>';
-            // Показываем только действия (не сайзы)
-            const actionTypes = ['fold', 'check', 'call', 'bet', 'raise'];
-            buttons.forEach(btn => {
-                if (actionTypes.includes(btn.type)) {
-                    const option = document.createElement('option');
-                    option.value = btn.type;
-                    option.textContent = `${btn.label} ${btn.amount || ''}`;
-                    select.appendChild(option);
-                }
-            });
-
-            if (currentValue) {
-                select.value = currentValue;
-            }
         }
 
         function updateCorrectAction() {
-            const actionSelect = document.getElementById('correct-action');
             const sizeSelect = document.getElementById('correct-size');
             const sliderClicksInput = document.getElementById('correct-slider-clicks');
             const buttons = streetData[currentStreet].buttons;
 
-            const actionType = actionSelect.value;
             const size = sizeSelect.value;
             const sliderClicks = parseInt(sliderClicksInput.value) || 0;
 
-            if (actionType) {
-                const btn = buttons.find(b => b.type === actionType);
-                if (btn) {
-                    streetData[currentStreet].correctAction = {
-                        type: actionType,
-                        label: btn.label,
-                        amount: btn.amount,
-                        size: size || null,
-                        sliderClicks: sliderClicks
-                    };
-                }
+            // Находим первую кнопку действия (fold/check/call/bet/raise)
+            const actionTypes = ['fold', 'check', 'call', 'bet', 'raise'];
+            const actionBtn = buttons.find(b => actionTypes.includes(b.type));
+
+            if (actionBtn) {
+                streetData[currentStreet].correctAction = {
+                    type: actionBtn.type,
+                    label: actionBtn.label,
+                    amount: actionBtn.amount,
+                    size: size || null,
+                    sliderClicks: sliderClicks
+                };
             } else {
                 streetData[currentStreet].correctAction = null;
             }
@@ -853,10 +814,6 @@
             generateCode();
         }
 
-        // Обработчики для обновления действия
-        document.getElementById('correct-size').addEventListener('change', updateCorrectAction);
-        document.getElementById('correct-slider-clicks').addEventListener('input', updateCorrectAction);
-        
         // Обновление полей при изменении типа
         document.getElementById('btn-type').addEventListener('change', function() {
             const type = this.value;
@@ -908,16 +865,15 @@
                 
                 if (!data.imageUrl) missing.push('нет изображения');
                 if (data.buttons.length === 0) missing.push('нет кнопок');
-                if (!data.correctAction) missing.push('не выбрано правильное действие');
                 
                 if (missing.length === 0) {
                     completedStreets++;
                     hasSteps = true;
-                    const correctAction = data.correctAction;
-                    const feedbackCorrect = document.getElementById('feedback-correct').value || 'Правильно!';
-                    const feedbackIncorrect = document.getElementById('feedback-incorrect').value || 'Неправильно.';
                     
-                    // Формируем correctAction с учетом размера ставки
+                    // Используем сохраненный correctAction
+                    const correctAction = data.correctAction;
+                    
+                    // Формируем correctAction
                     let correctActionCode = `                type: '${correctAction.type}',
                 label: '${correctAction.label}',
                 amount: '${correctAction.amount || ''}'`;
@@ -959,8 +915,8 @@ ${data.buttons.map(btn => {
             }).join(',\n')}
             ],
             feedback: {
-                correct: '${feedbackCorrect}',
-                incorrect: '${feedbackIncorrect}'
+                correct: 'Правильно!',
+                incorrect: 'Неправильно.'
             }
         },\n`;
                 } else if (data.imageUrl || data.buttons.length > 0) {
@@ -973,14 +929,14 @@ ${data.buttons.map(btn => {
             
             if (!hasSteps) {
                 document.getElementById('output-code').textContent = 
-                    '// Заполните хотя бы одну улицу полностью:\n// 1. URL изображения\n// 2. Добавьте кнопки на изображении\n// 3. Выберите правильное действие';
+                    '// Заполните хотя бы одну улицу полностью:\n// 1. URL изображения\n// 2. Добавьте кнопки действий (Fold/Check/Call/Bet/Raise)';
                 
                 if (missingItems.length > 0) {
                     statusDiv.innerHTML = `⚠️ Необходимо дозаполнить:<br>${missingItems.map(item => `• ${item}`).join('<br>')}`;
                     statusDiv.style.background = 'rgba(255, 165, 0, 0.1)';
                     statusDiv.style.color = '#ffa500';
                 } else {
-                    statusDiv.innerHTML = '⚠️ Для генерации кода нужно: 1) URL изображения, 2) Добавьте кнопки на изображении, 3) Выберите правильное действие. Базовый сайз и ползунок опциональны (0 кликов = без ползунка).';
+                    statusDiv.innerHTML = '⚠️ Для генерации кода нужно: 1) URL изображения, 2) Добавьте кнопки действий на изображении. Правильное действие определяется автоматически (первая кнопка действия). Добавьте хотя бы одну кнопку Fold/Check/Call/Bet/Raise.';
                     statusDiv.style.background = 'rgba(255, 165, 0, 0.1)';
                     statusDiv.style.color = '#ffa500';
                 }
@@ -1029,6 +985,12 @@ ${stepsCode}    ]
         }
         
         // Инициализация
+        // Устанавливаем начальные correctAction для всех улиц
+        ['preflop', 'flop', 'turn', 'river'].forEach(street => {
+            currentStreet = street;
+            updateCorrectAction();
+        });
+        currentStreet = 'preflop';
         generateCode();
     </script>
 </body>
