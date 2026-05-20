@@ -18,6 +18,120 @@
  */
 
 const SCENARIOS = {
+    'AKs': {
+        name: 'AKs',
+        description: '',
+        steps: [
+            {
+                id: 'preflop',
+                name: 'Префлоп',
+                image: 'https://static.dan-step.com/public/photos/AKs/1_preflop.png',
+                instruction: 'Ваше действие на Префлоп?',
+                correctAction: {
+                    type: 'raise',
+                    label: 'Raise to',
+                    amount: ''
+                },
+                buttons: [
+                    {
+                        id: 'raise',
+                        type: 'raise',
+                        label: 'Raise to',
+                        amount: '',
+                        x: 80.9,
+                        y: 84.2,
+                        width: 100,
+                        height: 60
+                    }
+                ],
+                feedback: {
+                    correct: 'Правильно!',
+                    incorrect: 'Неправильно.'
+                }
+            },
+            {
+                id: 'flop',
+                name: 'Флоп',
+                image: 'https://static.dan-step.com/public/photos/AKs/2_flop.png',
+                instruction: 'Ваше действие на Флоп?',
+                correctAction: {
+                    type: 'bet',
+                    label: 'Bet',
+                    amount: ''
+                },
+                buttons: [
+                    {
+                        id: 'bet',
+                        type: 'bet',
+                        label: 'Bet',
+                        amount: '',
+                        x: 80.8,
+                        y: 84.0,
+                        width: 100,
+                        height: 60
+                    }
+                ],
+                feedback: {
+                    correct: 'Правильно!',
+                    incorrect: 'Неправильно.'
+                }
+            },
+            {
+                id: 'turn',
+                name: 'Турн',
+                image: 'https://static.dan-step.com/public/photos/AKs/3_turn.png',
+                instruction: 'Ваше действие на Турн?',
+                correctAction: {
+                    type: 'check',
+                    label: 'Check',
+                    amount: ''
+                },
+                buttons: [
+                    {
+                        id: 'check',
+                        type: 'check',
+                        label: 'Check',
+                        amount: '',
+                        x: 72.1,
+                        y: 84.2,
+                        width: 100,
+                        height: 60
+                    }
+                ],
+                feedback: {
+                    correct: 'Правильно!',
+                    incorrect: 'Неправильно.'
+                }
+            },
+            {
+                id: 'river',
+                name: 'Ривер',
+                image: 'https://static.dan-step.com/public/photos/AKs/4_reaver.png',
+                instruction: 'Ваше действие на Ривер?',
+                correctAction: {
+                    type: 'fold',
+                    label: 'Fold',
+                    amount: ''
+                },
+                buttons: [
+                    {
+                        id: 'fold',
+                        type: 'fold',
+                        label: 'Fold',
+                        amount: '',
+                        x: 63.4,
+                        y: 84.2,
+                        width: 100,
+                        height: 60
+                    }
+                ],
+                feedback: {
+                    correct: 'Правильно!',
+                    incorrect: 'Неправильно.'
+                }
+            },
+        ]
+    }
     // Сценарий: AKs - 3бет префлоп -> цбет флоп -> чек турн -> фолд ривер
     // 'aks_3bet_cbet': {
     //     name: 'AKs - 3бет -> цбет -> чек -> фолд',
