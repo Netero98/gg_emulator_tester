@@ -12,8 +12,9 @@ class PokerEmulator {
         this.isWaitingForAction = true;
         this.debugMode = false;
         this.selectedSize = null; // Выбранный размер ставки
-        this.sliderClicks = null; // Количество кликов по ползунку
+        this.sliderClicksCount = 0; // Количество кликов по ползунку
         this.currentStepActions = []; // Действия на текущем шаге
+        this.missClicks = 0; // Счетчик кликов мимо кнопок
 
         this.initElements();
         this.initEventListeners();
@@ -83,6 +84,19 @@ class PokerEmulator {
             }
         });
 
+        // Обработка кликов мимо кнопок (missclicks)
+        this.elements.gameScreen.addEventListener('click', (e) => {
+            if (!this.isWaitingForAction) return;
+            
+            // Проверяем, что клик был не на кнопке
+            // Кнопки имеют класс 'click-area' и pointer-events: auto
+            // Если клик прошел сквозь overlay до game-screen — значит это мимо кнопки
+            const target = e.target;
+            if (!target.closest('.click-area')) {
+                this.handleMissClick();
+            }
+        });
+
         // Обработка изменения размера окна для пересчёта позиций
         window.addEventListener('resize', () => {
             if (this.currentScenario) {
@@ -124,18 +138,19 @@ class PokerEmulator {
         // Разблокируем области для кликов
         this.isWaitingForAction = true;
 
-            // Сбрасываем выбранный размер для нового шага
-            this.selectedSize = null;
-            this.sliderClicksCount = 0;
-            this.currentStepActions = [];
+        // Сбрасываем состояние для нового шага
+        this.selectedSize = null;
+        this.sliderClicksCount = 0;
+        this.currentStepActions = [];
+        this.missClicks = 0;
 
-            // Сбрасываем отображение выбранного размера
-            if (this.elements.sizeDisplay) {
-                this.elements.sizeDisplay.textContent = '';
-            }
+        // Сбрасываем отображение выбранного размера
+        if (this.elements.sizeDisplay) {
+            this.elements.sizeDisplay.textContent = '';
+        }
 
-            // Обновляем состояние кнопки "Следующий шаг"
-            this.elements.nextBtn.disabled = true;
+        // Обновляем состояние кнопки "Следующий шаг"
+        this.elements.nextBtn.disabled = true;
 
         // Устанавливаем src изображения и ждем загрузки
         this.elements.screenshotImg.src = step.image;
@@ -207,6 +222,54 @@ class PokerEmulator {
         });
 
         return area;
+    }
+
+    handleMissClick() {
+        if (!this.isWaitingForAction) return;
+
+        this.missClicks++;
+
+        // Блокируем дальнейшие действия
+        this.isWaitingForAction = false;
+
+        const step = this.currentScenario.steps[this.currentStepIndex];
+
+        // Сохраняем результат как ошибку
+        this.results.push({
+            step: step.name,
+            action: `Клик мимо кнопки (${this.missClicks}x)`,
+            correct: false,
+            expected: 'Клик по одной из кнопок на изображении',
+            actionType: 'missclick',
+            expectedType: step.correctAction.type,
+            selectedSize: this.selectedSize,
+            expectedSize: step.correctAction.size,
+            sliderClicks: this.sliderClicksCount,
+            expectedSliderClicks: step.correctAction.sliderClicks || 0,
+            sizeError: true,
+            missClick: true
+        });
+
+        // Показываем результат
+        this.elements.resultDisplay.className = 'result incorrect';
+        this.elements.resultDisplay.textContent = `✗ Клик мимо кнопки! Тест провален.`;
+        console.log(`[TEST] ✗ Клик мимо кнопки (${this.missClicks}x)`);
+
+        // Показываем подсказку с правильным действием
+        this.showActionHint(step.correctAction);
+
+        // Разблокируем кнопку "Следующий шаг"
+        this.elements.nextBtn.disabled = false;
+
+        // Сбрасываем отображение размера
+        if (this.elements.sizeDisplay) {
+            this.elements.sizeDisplay.textContent = '';
+        }
+
+        // Если это последний шаг, показываем итоги
+        if (this.currentStepIndex === this.currentScenario.steps.length - 1) {
+            setTimeout(() => this.showSummary(), 1500);
+        }
     }
 
     handleAction(buttonConfig) {
@@ -434,6 +497,7 @@ class PokerEmulator {
     showSummary() {
         const correctCount = this.results.filter(r => r.correct).length;
         const total = this.results.length;
+        const missClickCount = this.results.filter(r => r.missClick).length;
         
         let html = `
             <div class="summary-score" style="text-align: center; font-size: 24px; margin-bottom: 20px;">
@@ -443,17 +507,29 @@ class PokerEmulator {
             </div>
         `;
         
+        if (missClickCount > 0) {
+            html += `
+                <div style="text-align: center; color: #ff4444; margin-bottom: 20px; font-size: 16px;">
+                    ⚠ ${missClickCount} ${missClickCount === 1 ? 'промах' : missClickCount < 5 ? 'промаха' : 'промахов'} мимо кнопок
+                </div>
+            `;
+        }
+        
         html += '<div class="summary-list">';
         
         this.results.forEach((result, index) => {
             let errorDetail = '';
-            if (!result.correct && result.sizeError) {
-                if (result.selectedSize !== `bet_${result.expectedSize}`) {
-                    errorDetail = '<br><span style="color: #ff8888;">⚠ Ошибка в базовом размере</span>';
-                } else if (result.sliderClicks !== result.expectedSliderClicks) {
-                    errorDetail = `<br><span style="color: #ff8888;">⚠ Ползунок: ${result.sliderClicks} вместо ${result.expectedSliderClicks} кликов</span>`;
-                } else {
-                    errorDetail = '<br><span style="color: #ff8888;">⚠ Ошибка в размере ставки</span>';
+            if (!result.correct) {
+                if (result.missClick) {
+                    errorDetail = '<br><span style="color: #ff8888;">⚠ Клик мимо кнопки</span>';
+                } else if (result.sizeError) {
+                    if (result.selectedSize !== `bet_${result.expectedSize}`) {
+                        errorDetail = '<br><span style="color: #ff8888;">⚠ Ошибка в базовом размере</span>';
+                    } else if (result.sliderClicks !== result.expectedSliderClicks) {
+                        errorDetail = `<br><span style="color: #ff8888;">⚠ Ползунок: ${result.sliderClicks} вместо ${result.expectedSliderClicks} кликов</span>`;
+                    } else {
+                        errorDetail = '<br><span style="color: #ff8888;">⚠ Ошибка в размере ставки</span>';
+                    }
                 }
             }
             html += `
