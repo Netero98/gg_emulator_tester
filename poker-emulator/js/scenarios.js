@@ -31,19 +31,18 @@ const SCENARIOS = {
                 type: 'raise',
                 label: 'Raise to',
                 amount: '',
-                size: '100',
                 sliderClicks: 3
             },
             buttons: [
                 {
-                    id: 'bet_100',
-                    type: 'bet_100',
-                    label: '100%',
+                    id: 'raise',
+                    type: 'raise',
+                    label: 'Raise to',
                     amount: '',
-                    x: 71.1,
-                    y: 76.6,
-                    width: 40,
-                    height: 30
+                    x: 80.8,
+                    y: 84.3,
+                    width: 100,
+                    height: 60
                 },
                 {
                     id: 'slider_click',
@@ -53,18 +52,8 @@ const SCENARIOS = {
                     x: 82.6,
                     y: 76.6,
                     width: 40,
-                    height: 20,
+                    height: 21,
                     sliderClicks: 3
-                },
-                {
-                    id: 'raise',
-                    type: 'raise',
-                    label: 'Raise to',
-                    amount: '',
-                    x: 80.7,
-                    y: 84.2,
-                    width: 100,
-                    height: 60
                 }
             ],
             feedback: {

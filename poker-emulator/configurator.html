@@ -406,7 +406,7 @@
                 <li>Скопируйте сгенерированный код в scenarios.js</li>
                 <li>Закоммитьте изменения - тест сразу доступен онлайн!</li>
             </ol>
-            <p style="margin-top: 10px; color: #888;"><strong>💡 Подсказка:</strong> Правильное действие определяется автоматически - это первая кнопка действия (Fold/Check/Call/Bet/Raise) в списке. Если нужна проверка сайза - добавьте кнопки сайзов, бот должен сначала выбрать сайз, потом действие.</p>
+            <p style="margin-top: 10px; color: #888;"><strong>💡 Подсказка:</strong> Правильное действие определяется автоматически из созданных кнопок. Бот должен нажать все созданные кнопки в последовательности: базовый сайз (если есть) → ползунок (если есть) → действие.</p>
         </div>
         
         <!-- Test Setup -->
@@ -478,7 +478,7 @@
                                 <option value="bet_33">33% пота</option>
                                 <option value="bet_50">50% пота</option>
                                 <option value="bet_75">75% пота</option>
-                                <option value="bet_100">100% пота (All-in)</option>
+                                <option value="bet_100">100% пота</option>
                             </optgroup>
                             <optgroup label="Ползунок">
                                 <option value="slider_click">Клик по ползунку (N+2×)</option>
@@ -525,25 +525,6 @@
                     </div>
                 </div>
                 
-                <!-- Correct Action Parameters -->
-                <div class="panel">
-                    <h3>🎯 Параметры правильного действия</h3>
-                    <div class="control-group" style="margin-bottom: 10px;">
-                        <label>Базовый сайз (опционально):</label>
-                        <select id="correct-size" onchange="updateCorrectAction()">
-                            <option value="">-- Не выбрано --</option>
-                            <option value="33">33%</option>
-                            <option value="50">50%</option>
-                            <option value="75">75%</option>
-                            <option value="100">100%</option>
-                        </select>
-                    </div>
-                    <div class="control-group" style="margin-bottom: 10px;">
-                        <label>Кликов по ползунку:</label>
-                        <input type="number" id="correct-slider-clicks" value="0" min="0" max="20" style="width: 80px;" onchange="updateCorrectAction()">
-                        <span style="color: #888; font-size: 12px;">0 = без ползунка</span>
-                    </div>
-                </div>
             </div>
         </div>
         
@@ -554,7 +535,7 @@
                 Скопируйте код и вставьте в js/scenarios.js. Опция в селекте появится автоматически!
             </p>
             <div id="generation-status" style="background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); padding: 10px; border-radius: 5px; margin-bottom: 10px; color: #ffa500; font-size: 13px;">
-                ⚠️ Для генерации кода нужно: 1) URL изображения, 2) Кнопки действий (Fold/Check/Call/Bet/Raise). Правильное действие определяется автоматически - первая кнопка действия в списке.
+                ⚠️ Для генерации кода нужно: 1) URL изображения, 2) Кнопки действий (Fold/Check/Call/Bet/Raise). Правильное действие и сайз определяются автоматически из созданных кнопок.
             </div>
             <pre class="output-code" id="output-code">// Заполните все поля выше, чтобы сгенерировать код</pre>
             <button class="copy-btn" onclick="copyCode()">📋 Копировать код</button>
@@ -631,19 +612,6 @@
             
             // Обновляем список кнопок
             updateButtonList();
-            
-            // Восстанавливаем параметры правильного действия
-            const correctSizeSelect = document.getElementById('correct-size');
-            const correctSliderClicksInput = document.getElementById('correct-slider-clicks');
-            
-            if (data.correctAction) {
-                correctSizeSelect.value = data.correctAction.size || '';
-                correctSliderClicksInput.value = data.correctAction.sliderClicks || 0;
-            } else {
-                correctSizeSelect.value = '';
-                correctSliderClicksInput.value = 0;
-            }
-            
             generateCode();
         }
         
@@ -686,7 +654,6 @@
             streetData[currentStreet].buttons.push(button);
             renderButton(button);
             updateButtonList();
-            updateCorrectAction();
             generateCode();
         }
         
@@ -749,7 +716,6 @@
                 container.appendChild(img);
             }
             updateButtonList();
-            updateCorrectAction();
             generateCode();
         }
 
@@ -783,34 +749,6 @@
             if (el) el.remove();
             buttons.splice(index, 1);
             updateButtonList();
-            updateCorrectAction();
-            generateCode();
-        }
-
-        function updateCorrectAction() {
-            const sizeSelect = document.getElementById('correct-size');
-            const sliderClicksInput = document.getElementById('correct-slider-clicks');
-            const buttons = streetData[currentStreet].buttons;
-
-            const size = sizeSelect.value;
-            const sliderClicks = parseInt(sliderClicksInput.value) || 0;
-
-            // Находим первую кнопку действия (fold/check/call/bet/raise)
-            const actionTypes = ['fold', 'check', 'call', 'bet', 'raise'];
-            const actionBtn = buttons.find(b => actionTypes.includes(b.type));
-
-            if (actionBtn) {
-                streetData[currentStreet].correctAction = {
-                    type: actionBtn.type,
-                    label: actionBtn.label,
-                    amount: actionBtn.amount,
-                    size: size || null,
-                    sliderClicks: sliderClicks
-                };
-            } else {
-                streetData[currentStreet].correctAction = null;
-            }
-
             generateCode();
         }
 
@@ -870,23 +808,35 @@
                     completedStreets++;
                     hasSteps = true;
                     
-                    // Используем сохраненный correctAction
-                    const correctAction = data.correctAction;
+                    // Автоматически определяем correctAction из созданных кнопок
+                    const actionTypes = ['fold', 'check', 'call', 'bet', 'raise'];
+                    const sizeTypes = ['bet_33', 'bet_50', 'bet_75', 'bet_100'];
+                    
+                    // Находим первую кнопку действия
+                    const actionBtn = data.buttons.find(b => actionTypes.includes(b.type)) || data.buttons[0];
+                    
+                    // Находим первую кнопку сайза (если есть)
+                    const sizeBtn = data.buttons.find(b => sizeTypes.includes(b.type));
+                    const correctSize = sizeBtn ? sizeBtn.type.replace('bet_', '') : null;
+                    
+                    // Находим кнопку ползунка (если есть)
+                    const sliderBtn = data.buttons.find(b => b.type === 'slider_click');
+                    const correctSliderClicks = sliderBtn ? (sliderBtn.sliderClicks || 1) : 0;
                     
                     // Формируем correctAction
-                    let correctActionCode = `                type: '${correctAction.type}',
-                label: '${correctAction.label}',
-                amount: '${correctAction.amount || ''}'`;
+                    let correctActionCode = `                type: '${actionBtn.type}',
+                label: '${actionBtn.label}',
+                amount: '${actionBtn.amount || ''}'`;
                     
-                    // Добавляем базовый размер (если выбран)
-                    if (correctAction.size) {
+                    // Добавляем базовый размер (если есть кнопка сайза)
+                    if (correctSize) {
                         correctActionCode += `,
-                size: '${correctAction.size}'`;
+                size: '${correctSize}'`;
                     }
                     
                     // Добавляем количество кликов по ползунку (всегда, по умолчанию 0)
                     correctActionCode += `,
-                sliderClicks: ${correctAction.sliderClicks || 0}`;
+                sliderClicks: ${correctSliderClicks}`;
                     
                     stepsCode += `        {
             id: '${street}',
@@ -985,12 +935,6 @@ ${stepsCode}    ]
         }
         
         // Инициализация
-        // Устанавливаем начальные correctAction для всех улиц
-        ['preflop', 'flop', 'turn', 'river'].forEach(street => {
-            currentStreet = street;
-            updateCorrectAction();
-        });
-        currentStreet = 'preflop';
         generateCode();
     </script>
 </body>
