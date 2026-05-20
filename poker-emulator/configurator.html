@@ -402,10 +402,13 @@
                 <li>Загрузите скриншоты в интернет (GitHub Pages, imgur, etc.)</li>
                 <li>Введите название теста</li>
                 <li>Для каждой улицы укажите URL изображения</li>
-                <li>Настройте кнопки и разместите их на скриншоте</li>
+                <li>Настройте кнопки: сайзы (33%, 50%, 75%, 100%), ползунок, действия (Bet/Raise)</li>
+                <li>Выберите правильный базовый сайз (опционально) и количество кликов по ползунку (0 = без ползунка)</li>
+                <li>Выберите правильное действие</li>
                 <li>Скопируйте сгенерированный код в scenarios.js</li>
                 <li>Закоммитьте изменения - тест сразу доступен онлайн!</li>
             </ol>
+            <p style="margin-top: 10px; color: #888;"><strong>💡 Подсказка:</strong> Ползунок используется для точной настройки сайза после выбора базового. Например: 100% + 2 клика по ползунку = перебор аллина.</p>
         </div>
         
         <!-- Test Setup -->
@@ -527,7 +530,22 @@
                 <div class="panel">
                     <h3>✅ Правильное действие</h3>
                     <div class="control-group" style="margin-bottom: 10px;">
-                        <label>Выберите правильную кнопку:</label>
+                        <label>Базовый размер ставки (опционально):</label>
+                        <select id="correct-size" onchange="updateCorrectAction()">
+                            <option value="">-- Не выбрано --</option>
+                            <option value="33">33% пота</option>
+                            <option value="50">50% пота</option>
+                            <option value="75">75% пота</option>
+                            <option value="100">100% пота (All-in)</option>
+                        </select>
+                    </div>
+                    <div class="control-group" style="margin-bottom: 10px;">
+                        <label>Дополнительные клики по ползунку:</label>
+                        <input type="number" id="correct-slider-clicks" value="0" min="0" max="20" style="width: 100px;" onchange="updateCorrectAction()">
+                        <span style="color: #888; font-size: 12px;">0 = без кликов, используется только базовый сайз</span>
+                    </div>
+                    <div class="control-group" style="margin-bottom: 10px;">
+                        <label>Действие:</label>
                         <select id="correct-action" onchange="updateCorrectAction()">
                             <option value="">-- Не выбрано --</option>
                         </select>
@@ -551,7 +569,7 @@
                 Скопируйте код и вставьте в js/scenarios.js. Опция в селекте появится автоматически!
             </p>
             <div id="generation-status" style="background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); padding: 10px; border-radius: 5px; margin-bottom: 10px; color: #ffa500; font-size: 13px;">
-                ⚠️ Для генерации кода нужно: 1) URL изображения, 2) Кнопки на изображении (минимум 1), 3) Выбрать правильное действие
+                ⚠️ Для генерации кода нужно: 1) URL изображения, 2) Кнопки (сайзы + ползунок + действия), 3) Выбрать правильное действие. Базовый сайз и клики по ползунку опциональны.
             </div>
             <pre class="output-code" id="output-code">// Заполните все поля выше, чтобы сгенерировать код</pre>
             <button class="copy-btn" onclick="copyCode()">📋 Копировать код</button>
@@ -629,6 +647,19 @@
             // Обновляем список кнопок
             updateButtonList();
             updateCorrectActionSelect();
+            
+            // Восстанавливаем выбранный размер
+            const correctSizeSelect = document.getElementById('correct-size');
+            const correctSliderClicksInput = document.getElementById('correct-slider-clicks');
+            
+            if (data.correctAction) {
+                correctSizeSelect.value = data.correctAction.size || '';
+                correctSliderClicksInput.value = data.correctAction.sliderClicks || 0;
+            } else {
+                correctSizeSelect.value = '';
+                correctSliderClicksInput.value = 0;
+            }
+            
             generateCode();
         }
         
@@ -776,35 +807,55 @@
             const select = document.getElementById('correct-action');
             const buttons = streetData[currentStreet].buttons;
             const currentValue = select.value;
-            
+
             select.innerHTML = '<option value="">-- Не выбрано --</option>';
+            // Показываем только действия (не сайзы)
+            const actionTypes = ['fold', 'check', 'call', 'bet', 'raise'];
             buttons.forEach(btn => {
-                const option = document.createElement('option');
-                option.value = btn.type;
-                option.textContent = `${btn.label} ${btn.amount || ''}`;
-                select.appendChild(option);
+                if (actionTypes.includes(btn.type)) {
+                    const option = document.createElement('option');
+                    option.value = btn.type;
+                    option.textContent = `${btn.label} ${btn.amount || ''}`;
+                    select.appendChild(option);
+                }
             });
-            
+
             if (currentValue) {
                 select.value = currentValue;
             }
         }
-        
+
         function updateCorrectAction() {
-            const select = document.getElementById('correct-action');
-            const type = select.value;
+            const actionSelect = document.getElementById('correct-action');
+            const sizeSelect = document.getElementById('correct-size');
+            const sliderClicksInput = document.getElementById('correct-slider-clicks');
             const buttons = streetData[currentStreet].buttons;
-            const btn = buttons.find(b => b.type === type);
-            
-            if (btn) {
-                streetData[currentStreet].correctAction = {
-                    type: btn.type,
-                    label: btn.label,
-                    amount: btn.amount
-                };
+
+            const actionType = actionSelect.value;
+            const size = sizeSelect.value;
+            const sliderClicks = parseInt(sliderClicksInput.value) || 0;
+
+            if (actionType) {
+                const btn = buttons.find(b => b.type === actionType);
+                if (btn) {
+                    streetData[currentStreet].correctAction = {
+                        type: actionType,
+                        label: btn.label,
+                        amount: btn.amount,
+                        size: size || null,
+                        sliderClicks: sliderClicks
+                    };
+                }
+            } else {
+                streetData[currentStreet].correctAction = null;
             }
+
             generateCode();
         }
+
+        // Обработчики для обновления действия
+        document.getElementById('correct-size').addEventListener('change', updateCorrectAction);
+        document.getElementById('correct-slider-clicks').addEventListener('input', updateCorrectAction);
         
         // Обновление полей при изменении типа
         document.getElementById('btn-type').addEventListener('change', function() {
@@ -866,15 +917,28 @@
                     const feedbackCorrect = document.getElementById('feedback-correct').value || 'Правильно!';
                     const feedbackIncorrect = document.getElementById('feedback-incorrect').value || 'Неправильно.';
                     
+                    // Формируем correctAction с учетом размера ставки
+                    let correctActionCode = `                type: '${correctAction.type}',
+                label: '${correctAction.label}',
+                amount: '${correctAction.amount || ''}'`;
+                    
+                    // Добавляем базовый размер (если выбран)
+                    if (correctAction.size) {
+                        correctActionCode += `,
+                size: '${correctAction.size}'`;
+                    }
+                    
+                    // Добавляем количество кликов по ползунку (всегда, по умолчанию 0)
+                    correctActionCode += `,
+                sliderClicks: ${correctAction.sliderClicks || 0}`;
+                    
                     stepsCode += `        {
             id: '${street}',
             name: '${streetLabels[street]}',
             image: '${data.imageUrl}',
             instruction: 'Ваше действие на ${streetLabels[street]}?',
             correctAction: {
-                type: '${correctAction.type}',
-                label: '${correctAction.label}',
-                amount: '${correctAction.amount || ''}'
+${correctActionCode}
             },
             buttons: [
 ${data.buttons.map(btn => {
@@ -916,7 +980,7 @@ ${data.buttons.map(btn => {
                     statusDiv.style.background = 'rgba(255, 165, 0, 0.1)';
                     statusDiv.style.color = '#ffa500';
                 } else {
-                    statusDiv.innerHTML = '⚠️ Для генерации кода нужно: 1) URL изображения, 2) Кнопки на изображении (минимум 1), 3) Выбрать правильное действие';
+                    statusDiv.innerHTML = '⚠️ Для генерации кода нужно: 1) URL изображения, 2) Добавьте кнопки на изображении, 3) Выберите правильное действие. Базовый сайз и ползунок опциональны (0 кликов = без ползунка).';
                     statusDiv.style.background = 'rgba(255, 165, 0, 0.1)';
                     statusDiv.style.color = '#ffa500';
                 }

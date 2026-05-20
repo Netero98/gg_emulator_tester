@@ -11,10 +11,13 @@ class PokerEmulator {
         this.results = [];
         this.isWaitingForAction = true;
         this.debugMode = false;
-        
+        this.selectedSize = null; // Выбранный размер ставки
+        this.sliderClicks = null; // Количество кликов по ползунку
+        this.currentStepActions = []; // Действия на текущем шаге
+
         this.initElements();
         this.initEventListeners();
-        
+
         // Загружаем первый доступный сценарий
         const firstScenarioId = Object.keys(SCENARIOS)[0];
         if (firstScenarioId) {
@@ -31,6 +34,7 @@ class PokerEmulator {
             currentStep: document.getElementById('current-step'),
             totalSteps: document.getElementById('total-steps'),
             resultDisplay: document.getElementById('result-display'),
+            sizeDisplay: document.getElementById('selected-size-display'),
             scenarioSelect: document.getElementById('scenario-select'),
             resetBtn: document.getElementById('reset-btn'),
             nextBtn: document.getElementById('next-btn'),
@@ -38,7 +42,7 @@ class PokerEmulator {
             summaryContent: document.getElementById('summary-content'),
             debugCheckbox: document.getElementById('debug-mode')
         };
-        
+
         // Генерируем опции селекта из SCENARIOS
         this.populateScenarioSelect();
     }
@@ -120,8 +124,18 @@ class PokerEmulator {
         // Разблокируем области для кликов
         this.isWaitingForAction = true;
 
-        // Обновляем состояние кнопки "Следующий шаг"
-        this.elements.nextBtn.disabled = true;
+            // Сбрасываем выбранный размер для нового шага
+            this.selectedSize = null;
+            this.sliderClicksCount = 0;
+            this.currentStepActions = [];
+
+            // Сбрасываем отображение выбранного размера
+            if (this.elements.sizeDisplay) {
+                this.elements.sizeDisplay.textContent = '';
+            }
+
+            // Обновляем состояние кнопки "Следующий шаг"
+            this.elements.nextBtn.disabled = true;
 
         // Устанавливаем src изображения и ждем загрузки
         this.elements.screenshotImg.src = step.image;
@@ -199,59 +213,160 @@ class PokerEmulator {
         if (!this.isWaitingForAction) return;
 
         const step = this.currentScenario.steps[this.currentStepIndex];
-        const isCorrect = buttonConfig.type === step.correctAction.type;
+        const sizeTypes = ['bet_33', 'bet_50', 'bet_75', 'bet_100'];
+        const actionTypes = ['fold', 'check', 'call', 'bet', 'raise'];
 
-        // Блокируем дальнейшие действия
-        this.isWaitingForAction = false;
+        // Если нажата кнопка базового сайза (33%, 50%, 75%, 100%)
+        if (sizeTypes.includes(buttonConfig.type)) {
+            this.selectedSize = buttonConfig.type;
+            // Сбрасываем счетчик кликов по ползунку при смене базового сайза
+            this.sliderClicksCount = 0;
 
-        // Формируем описание действия
-        let actionDesc = buttonConfig.label;
-        if (buttonConfig.amount) {
-            actionDesc += ` ${buttonConfig.amount}`;
-        }
-        if (buttonConfig.type === 'slider_click' && buttonConfig.sliderClicks) {
-            actionDesc += ` (${buttonConfig.sliderClicks}× клик)`;
-        }
-
-        // Формируем описание ожидаемого действия
-        let expectedDesc = step.correctAction.label;
-        if (step.correctAction.amount) {
-            expectedDesc += ` ${step.correctAction.amount}`;
-        }
-        if (step.correctAction.type === 'slider_click' && step.correctAction.sliderClicks) {
-            expectedDesc += ` (${step.correctAction.sliderClicks}× клик)`;
-        }
-
-        // Сохраняем результат
-        this.results.push({
-            step: step.name,
-            action: actionDesc,
-            correct: isCorrect,
-            expected: expectedDesc,
-            actionType: buttonConfig.type,
-            expectedType: step.correctAction.type
-        });
-
-        // Показываем результат теста (только в панели статуса, не на кнопках)
-        if (isCorrect) {
-            this.elements.resultDisplay.className = 'result correct';
-            this.elements.resultDisplay.textContent = `✓ ${step.feedback.correct}`;
-            console.log(`[TEST] ✓ Правильно: ${buttonConfig.type}`);
-        } else {
-            this.elements.resultDisplay.className = 'result incorrect';
-            this.elements.resultDisplay.textContent = `✗ ${step.feedback.incorrect}`;
-            console.log(`[TEST] ✗ Неправильно: ${buttonConfig.type}, ожидалось: ${step.correctAction.type}`);
+            // Показываем, что сайз выбран
+            let sizeLabel = buttonConfig.label;
+            
+            // Обновляем отображение выбранного размера
+            if (this.elements.sizeDisplay) {
+                this.elements.sizeDisplay.textContent = `Размер: ${sizeLabel}`;
+            }
+            
+            this.elements.resultDisplay.className = 'result waiting';
+            this.elements.resultDisplay.textContent = `Выбран размер: ${sizeLabel}. Теперь выберите действие (Bet/Raise) или настройте ползунком.`;
+            console.log(`[TEST] Выбран базовый размер: ${buttonConfig.type}`);
+            return;
         }
 
-        // Показываем подсказку с правильным действием
-        this.showActionHint(step.correctAction);
+        // Если нажата кнопка ползунка - увеличиваем счетчик кликов
+        if (buttonConfig.type === 'slider_click') {
+            this.sliderClicksCount = (this.sliderClicksCount || 0) + 1;
+            
+            // Показываем текущее количество кликов
+            let sizeLabel = this.selectedSize ? 
+                step.buttons.find(b => b.type === this.selectedSize)?.label || '' : 
+                'Custom';
+            sizeLabel += ` + Slider (${this.sliderClicksCount}× клик)`;
+            
+            // Обновляем отображение выбранного размера
+            if (this.elements.sizeDisplay) {
+                this.elements.sizeDisplay.textContent = `Размер: ${sizeLabel}`;
+            }
+            
+            this.elements.resultDisplay.className = 'result waiting';
+            this.elements.resultDisplay.textContent = `Добавлено ${this.sliderClicksCount} кликов по ползунку. Выберите действие (Bet/Raise).`;
+            console.log(`[TEST] Клик по ползунку: ${this.sliderClicksCount} раз`);
+            return;
+        }
 
-        // Разблокируем кнопку "Следующий шаг"
-        this.elements.nextBtn.disabled = false;
+        // Если нажата кнопка действия (Fold/Check/Call/Bet/Raise)
+        if (actionTypes.includes(buttonConfig.type)) {
+            // Проверяем правильность
+            const expectedSize = step.correctAction.size;
+            const expectedSliderClicks = step.correctAction.sliderClicks || 0;
+            const expectedAction = step.correctAction.type;
 
-        // Если это последний шаг, показываем итоги
-        if (this.currentStepIndex === this.currentScenario.steps.length - 1) {
-            setTimeout(() => this.showSummary(), 1500);
+            // Проверяем действие
+            const isActionCorrect = buttonConfig.type === expectedAction;
+
+            // Проверяем базовый размер
+            let isBaseSizeCorrect = true;
+            if (expectedSize) {
+                isBaseSizeCorrect = this.selectedSize === `bet_${expectedSize}`;
+            }
+
+            // Проверяем количество кликов по ползунку
+            const actualSliderClicks = this.sliderClicksCount || 0;
+            const isSliderClicksCorrect = actualSliderClicks === expectedSliderClicks;
+
+            const isSizeCorrect = isBaseSizeCorrect && isSliderClicksCorrect;
+            const sizeError = !isSizeCorrect;
+
+            const isCorrect = isActionCorrect && isSizeCorrect;
+
+            // Блокируем дальнейшие действия
+            this.isWaitingForAction = false;
+
+            // Формируем описание действия
+            let actionDesc = '';
+            if (this.selectedSize) {
+                const sizeBtn = step.buttons.find(b => b.type === this.selectedSize);
+                if (sizeBtn) {
+                    actionDesc = sizeBtn.label;
+                }
+            }
+            if (actualSliderClicks > 0) {
+                actionDesc += (actionDesc ? ' + ' : '') + `Slider (${actualSliderClicks}×)`;
+            }
+            actionDesc = actionDesc ? `${actionDesc} → ` : '';
+            actionDesc += buttonConfig.label;
+            if (buttonConfig.amount) {
+                actionDesc += ` ${buttonConfig.amount}`;
+            }
+
+            // Формируем описание ожидаемого действия
+            let expectedDesc = '';
+            if (expectedSize) {
+                expectedDesc = `${expectedSize}%`;
+            }
+            if (expectedSliderClicks > 0) {
+                expectedDesc += (expectedDesc ? ' + ' : '') + `Slider (${expectedSliderClicks}×)`;
+            }
+            expectedDesc = expectedDesc ? `${expectedDesc} → ` : '';
+            expectedDesc += step.correctAction.label;
+            if (step.correctAction.amount) {
+                expectedDesc += ` ${step.correctAction.amount}`;
+            }
+
+            // Сохраняем результат
+            this.results.push({
+                step: step.name,
+                action: actionDesc,
+                correct: isCorrect,
+                expected: expectedDesc,
+                actionType: buttonConfig.type,
+                expectedType: expectedAction,
+                selectedSize: this.selectedSize,
+                expectedSize: expectedSize,
+                sliderClicks: actualSliderClicks,
+                expectedSliderClicks: expectedSliderClicks,
+                sizeError: sizeError
+            });
+
+            // Показываем результат теста
+            if (isCorrect) {
+                this.elements.resultDisplay.className = 'result correct';
+                this.elements.resultDisplay.textContent = `✓ ${step.feedback.correct}`;
+                console.log(`[TEST] ✓ Правильно: ${actionDesc}`);
+            } else {
+                this.elements.resultDisplay.className = 'result incorrect';
+                if (sizeError) {
+                    if (!isBaseSizeCorrect) {
+                        this.elements.resultDisplay.textContent = `✗ Неправильный базовый размер. ${step.feedback.incorrect}`;
+                    } else if (!isSliderClicksCorrect) {
+                        this.elements.resultDisplay.textContent = `✗ Неправильное количество кликов по ползунку (${actualSliderClicks} вместо ${expectedSliderClicks}). ${step.feedback.incorrect}`;
+                    } else {
+                        this.elements.resultDisplay.textContent = `✗ Неправильный размер ставки. ${step.feedback.incorrect}`;
+                    }
+                } else {
+                    this.elements.resultDisplay.textContent = `✗ ${step.feedback.incorrect}`;
+                }
+                console.log(`[TEST] ✗ Неправильно: ${actionDesc}, ожидалось: ${expectedDesc}`);
+            }
+
+            // Показываем подсказку с правильным действием
+            this.showActionHint(step.correctAction);
+
+            // Разблокируем кнопку "Следующий шаг"
+            this.elements.nextBtn.disabled = false;
+
+            // Сбрасываем отображение размера после завершения хода
+            if (this.elements.sizeDisplay) {
+                this.elements.sizeDisplay.textContent = '';
+            }
+
+            // Если это последний шаг, показываем итоги
+            if (this.currentStepIndex === this.currentScenario.steps.length - 1) {
+                setTimeout(() => this.showSummary(), 1500);
+            }
         }
     }
 
@@ -259,10 +374,21 @@ class PokerEmulator {
         const hint = this.elements.actionHint;
 
         // Формируем текст подсказки
-        let actionText = `${correctAction.label} ${correctAction.amount || ''}`;
-        if (correctAction.type === 'slider_click' && correctAction.sliderClicks) {
-            actionText += ` (${correctAction.sliderClicks}× клик)`;
+        let actionText = '';
+        
+        // Добавляем базовый размер (если есть)
+        if (correctAction.size) {
+            actionText = `${correctAction.size}%`;
         }
+        
+        // Добавляем клики по ползунку (если есть)
+        if (correctAction.sliderClicks && correctAction.sliderClicks > 0) {
+            actionText += (actionText ? ' + ' : '') + `Slider (${correctAction.sliderClicks}×)`;
+        }
+        
+        // Добавляем стрелку и действие
+        actionText = actionText ? `${actionText} → ` : '';
+        actionText += `${correctAction.label} ${correctAction.amount || ''}`;
 
         hint.innerHTML = `
             <div>Правильное действие:</div>
@@ -305,13 +431,23 @@ class PokerEmulator {
         html += '<div class="summary-list">';
         
         this.results.forEach((result, index) => {
+            let errorDetail = '';
+            if (!result.correct && result.sizeError) {
+                if (result.selectedSize !== `bet_${result.expectedSize}`) {
+                    errorDetail = '<br><span style="color: #ff8888;">⚠ Ошибка в базовом размере</span>';
+                } else if (result.sliderClicks !== result.expectedSliderClicks) {
+                    errorDetail = `<br><span style="color: #ff8888;">⚠ Ползунок: ${result.sliderClicks} вместо ${result.expectedSliderClicks} кликов</span>`;
+                } else {
+                    errorDetail = '<br><span style="color: #ff8888;">⚠ Ошибка в размере ставки</span>';
+                }
+            }
             html += `
                 <div class="summary-item ${result.correct ? 'correct' : 'incorrect'}">
                     <div>
                         <span class="step-name">${index + 1}. ${result.step}</span>
                         <div class="action-taken">
                             ${result.correct ? '✓' : '✗'} Ваше действие: ${result.action}
-                            ${!result.correct ? `<br>✓ Правильно: ${result.expected}` : ''}
+                            ${!result.correct ? `<br>✓ Правильно: ${result.expected}${errorDetail}` : ''}
                         </div>
                     </div>
                 </div>
