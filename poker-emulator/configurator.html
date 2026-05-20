@@ -413,11 +413,15 @@
             <div class="setup-grid">
                 <div class="control-group">
                     <label>Название теста (ID):</label>
-                    <input type="text" id="test-id" placeholder="например: qq_4bet_pot">
+                    <input type="text" id="test-id" placeholder="например: qq_4bet_pot" oninput="generateCode()">
                 </div>
                 <div class="control-group">
                     <label>Название для отображения:</label>
-                    <input type="text" id="test-name" placeholder="например: QQ - 4бет пот">
+                    <input type="text" id="test-name" placeholder="например: QQ - 4бет пот" oninput="generateCode()">
+                </div>
+                <div class="control-group">
+                    <label>Описание теста:</label>
+                    <input type="text" id="test-desc" placeholder="Краткое описание ситуации..." oninput="generateCode()">
                 </div>
             </div>
         </div>
@@ -515,11 +519,11 @@
                     </div>
                     <div class="control-group">
                         <label>Объяснение (если правильно):</label>
-                        <textarea id="feedback-correct" placeholder="Отлично! Это правильное решение потому что..."></textarea>
+                        <textarea id="feedback-correct" placeholder="Отлично! Это правильное решение потому что..." oninput="generateCode()"></textarea>
                     </div>
                     <div class="control-group">
                         <label>Объяснение (если неправильно):</label>
-                        <textarea id="feedback-incorrect" placeholder="Неправильно. Лучше было бы..."></textarea>
+                        <textarea id="feedback-incorrect" placeholder="Неправильно. Лучше было бы..." oninput="generateCode()"></textarea>
                     </div>
                 </div>
             </div>
@@ -531,6 +535,9 @@
             <p style="color: #888; font-size: 13px; margin-bottom: 10px;">
                 Скопируйте код и вставьте в js/scenarios.js. Опция в селекте появится автоматически!
             </p>
+            <div id="generation-status" style="background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); padding: 10px; border-radius: 5px; margin-bottom: 10px; color: #ffa500; font-size: 13px;">
+                ⚠️ Для генерации кода нужно: 1) URL изображения, 2) Кнопки на изображении (минимум 1), 3) Выбрать правильное действие
+            </div>
             <pre class="output-code" id="output-code">// Заполните все поля выше, чтобы сгенерировать код</pre>
             <button class="copy-btn" onclick="copyCode()">📋 Копировать код</button>
             <button class="download-btn" onclick="downloadScenario()">💾 Скачать scenario.js</button>
@@ -588,7 +595,6 @@
                 const img = document.createElement('img');
                 img.src = data.imageUrl;
                 img.id = 'screenshot-img';
-                img.crossOrigin = 'anonymous';
                 img.onload = function() {
                     document.querySelector(`[data-street="${street}"]`).classList.add('has-image');
                 };
@@ -804,17 +810,25 @@
             
             let stepsCode = '';
             let hasSteps = false;
+            let completedStreets = 0;
+            let missingItems = [];
             
             streets.forEach(street => {
                 const data = streetData[street];
-                if (data.buttons.length === 0 || !data.imageUrl) return;
+                const missing = [];
                 
-                hasSteps = true;
-                const correctAction = data.correctAction || data.buttons[0];
-                const feedbackCorrect = document.getElementById('feedback-correct').value || 'Правильно!';
-                const feedbackIncorrect = document.getElementById('feedback-incorrect').value || 'Неправильно.';
+                if (!data.imageUrl) missing.push('нет изображения');
+                if (data.buttons.length === 0) missing.push('нет кнопок');
+                if (!data.correctAction) missing.push('не выбрано правильное действие');
                 
-                stepsCode += `        {
+                if (missing.length === 0) {
+                    completedStreets++;
+                    hasSteps = true;
+                    const correctAction = data.correctAction;
+                    const feedbackCorrect = document.getElementById('feedback-correct').value || 'Правильно!';
+                    const feedbackIncorrect = document.getElementById('feedback-incorrect').value || 'Неправильно.';
+                    
+                    stepsCode += `        {
             id: '${street}',
             name: '${streetLabels[street]}',
             image: '${data.imageUrl}',
@@ -841,13 +855,34 @@ ${data.buttons.map(btn => `                {
                 incorrect: '${feedbackIncorrect}'
             }
         },\n`;
+                } else if (data.imageUrl || data.buttons.length > 0) {
+                    // Улица частично заполнена
+                    missingItems.push(`${streetLabels[street]}: ${missing.join(', ')}`);
+                }
             });
+            
+            const statusDiv = document.getElementById('generation-status');
             
             if (!hasSteps) {
                 document.getElementById('output-code').textContent = 
-                    '// Настройте изображения и кнопки хотя бы для одной улицы';
+                    '// Заполните хотя бы одну улицу полностью:\n// 1. URL изображения\n// 2. Добавьте кнопки на изображении\n// 3. Выберите правильное действие';
+                
+                if (missingItems.length > 0) {
+                    statusDiv.innerHTML = `⚠️ Необходимо дозаполнить:<br>${missingItems.map(item => `• ${item}`).join('<br>')}`;
+                    statusDiv.style.background = 'rgba(255, 165, 0, 0.1)';
+                    statusDiv.style.color = '#ffa500';
+                } else {
+                    statusDiv.innerHTML = '⚠️ Для генерации кода нужно: 1) URL изображения, 2) Кнопки на изображении (минимум 1), 3) Выбрать правильное действие';
+                    statusDiv.style.background = 'rgba(255, 165, 0, 0.1)';
+                    statusDiv.style.color = '#ffa500';
+                }
                 return;
             }
+            
+            // Успешная генерация
+            statusDiv.innerHTML = `✅ Готово! Сгенерировано шагов: ${completedStreets} из 4`;
+            statusDiv.style.background = 'rgba(0, 255, 0, 0.1)';
+            statusDiv.style.color = '#00ff00';
             
             const fullCode = `'${testId}': {
     name: '${testName}',
