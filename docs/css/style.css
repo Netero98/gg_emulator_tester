@@ -9,11 +9,11 @@ body {
     background: #1a1a2e;
     color: #fff;
     min-height: 100vh;
-    padding: 20px;
+    padding: 0;
 }
 
 .app-container {
-    max-width: 1400px;
+    max-width: none;
     margin: 0 auto;
 }
 
@@ -22,10 +22,10 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding: 15px 20px;
+    margin-bottom: 10px;
+    padding: 10px 20px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    border-radius: 0;
 }
 
 .header h1 {
@@ -54,10 +54,10 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding: 15px 20px;
+    margin-bottom: 10px;
+    padding: 10px 20px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    border-radius: 0;
 }
 
 .progress {
@@ -99,20 +99,18 @@ body {
 .game-screen {
     position: relative;
     display: block;
-    width: fit-content;
-    max-width: 1200px;
+    width: 100%;
+    max-width: none;
     margin: 0 auto 20px;
-    border-radius: 10px;
+    border-radius: 0;
     overflow: hidden;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    line-height: 0; /* Убираем отступ снизу у img */
+    line-height: 0;
 }
 
 .screenshot-img {
     display: block;
-    max-width: 100%;
-    max-height: 80vh;
-    width: auto;
+    width: 100%;
     height: auto;
 }
 
@@ -267,6 +265,6 @@ body {
 /* Responsive */
 @media (max-width: 900px) {
     .screenshot-img {
-        max-height: 60vh;
+        width: 100%;
     }
 }
