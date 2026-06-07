@@ -298,6 +298,103 @@ def test_scaling():
     return ok
 
 
+def test_local_file_loading():
+    """image_loader должен корректно загружать локальные файлы:
+    file:// URL, абсолютные пути, относительные пути."""
+    section("Загрузка локальных файлов (file://, абсолютные, относительные)")
+    from image_loader import load_image, register_base_dir, _normalize_file_url
+
+    # Создаём тестовую "локальную" копию картинки в docs/photos/
+    test_photo = REPO / "docs" / "photos" / "AKs_1_preflop.png"
+    if not test_photo.exists():
+        # Скопировать из cache
+        import shutil
+        cache_files = list((REPO / "viewer" / "cache").glob("*.bin"))
+        if cache_files:
+            shutil.copy(cache_files[0], test_photo)
+
+    if not test_photo.exists():
+        print("  ⚠ Пропуск теста: нет sample картинки")
+        return True  # не считаем за fail
+
+    ok = True
+
+    # 1) file:// URL
+    try:
+        img = load_image(f"file://{test_photo}")
+        ok &= check(img.size[0] > 0 and img.size[1] > 0,
+                    f"file:// URL: загружено {img.size[0]}x{img.size[1]}")
+    except Exception as e:
+        ok &= check(False, f"file:// URL: ошибка {e}")
+
+    # 2) абсолютный путь
+    try:
+        img = load_image(str(test_photo))
+        ok &= check(img.size[0] > 0 and img.size[1] > 0,
+                    f"абсолютный путь: загружено {img.size[0]}x{img.size[1]}")
+    except Exception as e:
+        ok &= check(False, f"абсолютный путь: ошибка {e}")
+
+    # 3) относительный путь (с base_dir = REPO/docs)
+    try:
+        register_base_dir(REPO / "docs")
+        img = load_image("photos/AKs_1_preflop.png")
+        ok &= check(img.size[0] > 0 and img.size[1] > 0,
+                    f"относительный путь 'photos/...': загружено {img.size[0]}x{img.size[1]}")
+    except Exception as e:
+        ok &= check(False, f"относительный путь: ошибка {e}")
+
+    # 4) несуществующий файл → ошибка с понятным сообщением
+    try:
+        load_image("file:///nonexistent/photo.png")
+        ok &= check(False, "несуществующий файл: должна быть ошибка")
+    except FileNotFoundError as e:
+        ok &= check("not found" in str(e).lower() or "не найден" in str(e).lower() or "Photo" in str(e),
+                    f"несуществующий файл: понятная ошибка ({e!s:.80}...)")
+    except Exception as e:
+        ok &= check(False, f"несуществующий файл: неправильный тип ошибки {type(e).__name__}: {e}")
+
+    return ok
+
+
+def test_manifest():
+    """Проверяем что make photos-manifest генерирует корректный docs/photos.json."""
+    section("Manifest docs/photos.json")
+    from generate_manifest import scan
+    import json
+
+    photos_dir = REPO / "docs" / "photos"
+    docs_dir = REPO / "docs"
+
+    photos = scan(photos_dir, docs_dir)
+    ok = True
+    ok &= check(len(photos) >= 1, f"найдено {len(photos)} фото (>= 1)")
+    if photos:
+        sample = photos[0]
+        ok &= check("rel" in sample, "у фоток есть поле 'rel'")
+        ok &= check(sample["rel"].startswith("photos/"),
+                    f"rel начинается с 'photos/': {sample['rel']!r}")
+        ok &= check("name" in sample and sample["name"],
+                    f"у фоток есть непустое имя: {sample.get('name')!r}")
+        ok &= check("size_bytes" in sample and sample["size_bytes"] > 0,
+                    f"size_bytes > 0: {sample.get('size_bytes')}")
+
+    # Проверить что manifest-файл существует
+    manifest_file = REPO / "docs" / "photos.json"
+    ok &= check(manifest_file.exists(), f"manifest существует: {manifest_file}")
+    if manifest_file.exists():
+        try:
+            data = json.loads(manifest_file.read_text(encoding="utf-8"))
+            ok &= check("photos" in data and isinstance(data["photos"], list),
+                        f"manifest содержит массив photos ({len(data.get('photos', []))} элементов)")
+            ok &= check(data["count"] == len(data["photos"]),
+                        f"manifest.count == {data['count']} == len(photos)")
+        except Exception as e:
+            ok &= check(False, f"manifest — корректный JSON: {e}")
+
+    return ok
+
+
 # --------- main --------- #
 
 def main():
@@ -312,6 +409,8 @@ def main():
     results.append(("no_size", test_no_size_when_expected()))
     results.append(("close_no_overlap", test_close_button_no_overlap()))
     results.append(("scaling", test_scaling()))
+    results.append(("local_files", test_local_file_loading()))
+    results.append(("manifest", test_manifest()))
 
     print("\n" + "=" * 60)
     passed = sum(1 for _, ok in results if ok)

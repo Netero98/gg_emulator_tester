@@ -21,7 +21,7 @@ POSITION ?= 0,0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help all init check run smoke test list info clean clean-cache verify-close run-debug
+.PHONY: help all init check run smoke test list info clean clean-cache verify-close run-debug photos-manifest
 
 help: ## Показать список команд
 	@echo "Poker Emulator Viewer — Makefile"
@@ -97,6 +97,9 @@ run-debug: ## Запустить viewer с логированием всех к�
 		--position $(POSITION) \
 		--debug \
 		--log-clicks
+
+photos-manifest: ## Сгенерировать docs/photos.json (список файлов из docs/photos/)
+	@$(PY) viewer/generate_manifest.py
 
 list: ## Показать доступные сценарии
 	@test -x $(PY) || { echo "✗ venv не создан. Запустите: make init"; exit 1; }

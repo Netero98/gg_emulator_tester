@@ -1,0 +1,19 @@
+{
+  "generated": "2026-06-07T11:31:58",
+  "count": 2,
+  "photos_dir": "photos",
+  "photos": [
+    {
+      "rel": "photos/AKs_1_preflop.png",
+      "name": "AKs_1_preflop.png",
+      "subdir": "",
+      "size_bytes": 2452159
+    },
+    {
+      "rel": "photos/KJc_preflop_is3bet.png",
+      "name": "KJc_preflop_is3bet.png",
+      "subdir": "",
+      "size_bytes": 1877579
+    }
+  ]
+}

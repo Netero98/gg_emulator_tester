@@ -179,6 +179,96 @@
             color: #fff;
             font-size: 14px;
         }
+
+        .btn-pick-dir,
+        .btn-refresh {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 5px;
+            background: #2d6a4f;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+        .btn-pick-dir:hover,
+        .btn-refresh:hover {
+            background: #40916c;
+        }
+        .btn-refresh {
+            padding: 4px 10px;
+            font-size: 12px;
+            background: #444;
+        }
+        .btn-refresh:hover {
+            background: #666;
+        }
+
+        .photos-gallery {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+        }
+        .photos-gallery-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .photos-gallery-header > span:first-child {
+            flex: 1;
+        }
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+        .photo-thumb {
+            position: relative;
+            background: #1a1a2e;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.15s;
+            aspect-ratio: 16/9;
+        }
+        .photo-thumb:hover {
+            border-color: #ffd700;
+            transform: translateY(-1px);
+        }
+        .photo-thumb.selected {
+            border-color: #00ff00;
+            box-shadow: 0 0 0 1px #00ff00;
+        }
+        .photo-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .photo-thumb .photo-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            color: #fff;
+            font-size: 10px;
+            padding: 12px 6px 4px;
+            font-family: monospace;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         
         .image-container {
             position: relative;
@@ -449,9 +539,27 @@
             <div class="image-section">
                 <div class="image-toolbar">
                     <label>URL изображения для <span id="current-street-label">Префлоп</span>:</label>
-                    <input type="text" id="image-url" placeholder="https://..."
-                           onchange="loadImageFromUrl()"
-                           onkeydown="if(event.key==='Enter'){event.preventDefault();loadImageFromUrl();}">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="image-url" placeholder="https://... или photos/<filename>.png"
+                               style="flex: 1;"
+                               onchange="loadImageFromUrl()"
+                               onkeydown="if(event.key==='Enter'){event.preventDefault();loadImageFromUrl();}">
+                        <button type="button" class="btn-pick-dir" onclick="togglePhotosGallery()" title="Показать/скрыть галерею фоток из docs/photos/">
+                            📁 Из photos/
+                        </button>
+                    </div>
+                    <div id="photos-gallery" class="photos-gallery" style="display: none;">
+                        <div class="photos-gallery-header">
+                            <span>📂 <span id="photos-dir-name">photos/</span> — <span id="photos-count">0</span> файлов</span>
+                            <button type="button" class="btn-refresh" onclick="loadPhotosManifest()" title="Перечитать docs/photos.json">🔄</button>
+                            <button type="button" class="btn-refresh" onclick="hidePhotosGallery()" title="Закрыть">✕</button>
+                        </div>
+                        <div class="photos-grid" id="photos-grid"></div>
+                        <div id="photos-empty" style="color: #888; font-size: 12px; padding: 10px; display: none;">
+                            Файл <code>docs/photos.json</code> не найден. Положите картинки в
+                            <code>docs/photos/</code> и выполните <code>make photos-manifest</code>.
+                        </div>
+                    </div>
                 </div>
                 <div class="image-container" id="image-container">
                     <div style="color: #666; text-align: center;">
@@ -619,6 +727,102 @@
             const url = document.getElementById('image-url').value;
             streetData[currentStreet].imageUrl = url;
             loadStreetData(currentStreet);
+        }
+
+        // ============================================================
+        //  Photos gallery — статичный manifest из docs/photos.json
+        // ============================================================
+        //
+        // Подход полностью "статичный":
+        //   - Картинки лежат в docs/photos/ (можно с подпапками)
+        //   - `make photos-manifest` сканирует папку → пишет docs/photos.json
+        //   - Конфигуратор fetch'ит photos.json → показывает превью
+        //   - Клик ставит относительный URL в инпут (например, "photos/AKs/1.png")
+        //
+        // Без сервера, без File API, без браузерных picker'ов.
+        // Работает на file:// (manifest рядом с конфигуратором — same directory).
+        // URL относительный → работает и в Python viewer, и в web (если хостить из docs/).
+
+        function togglePhotosGallery() {
+            const gallery = document.getElementById('photos-gallery');
+            if (gallery.style.display === 'none') {
+                gallery.style.display = 'block';
+                loadPhotosManifest();
+            } else {
+                gallery.style.display = 'none';
+            }
+        }
+
+        function hidePhotosGallery() {
+            document.getElementById('photos-gallery').style.display = 'none';
+        }
+
+        function loadPhotosManifest() {
+            const grid = document.getElementById('photos-grid');
+            const empty = document.getElementById('photos-empty');
+            grid.innerHTML = '';
+            empty.style.display = 'none';
+
+            fetch('photos.json', { cache: 'no-store' })
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                    return r.json();
+                })
+                .then(manifest => {
+                    document.getElementById('photos-dir-name').textContent = manifest.photos_dir + '/';
+                    document.getElementById('photos-count').textContent = manifest.count;
+                    renderPhotosGallery(manifest.photos || []);
+                })
+                .catch(err => {
+                    console.warn('Не удалось загрузить photos.json:', err);
+                    grid.innerHTML = '';
+                    empty.style.display = 'block';
+                    document.getElementById('photos-count').textContent = '0';
+                });
+        }
+
+        function renderPhotosGallery(photos) {
+            const grid = document.getElementById('photos-grid');
+            grid.innerHTML = '';
+            photos.forEach(photo => {
+                const thumb = document.createElement('div');
+                thumb.className = 'photo-thumb';
+                thumb.title = photo.rel + ' (' + Math.round(photo.size_bytes / 1024) + ' KB)';
+
+                const img = document.createElement('img');
+                img.src = photo.rel;   // относительный путь: photos/... — отлично работает на file://
+                img.alt = photo.name;
+                img.loading = 'lazy';
+                img.onerror = () => {
+                    // Если превью не загрузилось — покажем пустую плашку
+                    img.style.opacity = '0.2';
+                };
+                thumb.appendChild(img);
+
+                const label = document.createElement('div');
+                label.className = 'photo-label';
+                // Показываем имя файла; если есть подпапка — последние 2 сегмента
+                const display = photo.subdir
+                    ? photo.subdir + '/' + photo.name
+                    : photo.name;
+                label.textContent = display;
+                thumb.appendChild(label);
+
+                thumb.addEventListener('click', () => selectPhoto(photo, thumb));
+                grid.appendChild(thumb);
+            });
+        }
+
+        function selectPhoto(photo, thumbEl) {
+            // Подсветить выбранную превью
+            document.querySelectorAll('.photo-thumb.selected').forEach(t => t.classList.remove('selected'));
+            thumbEl.classList.add('selected');
+
+            // Установить URL — относительный путь из manifest
+            document.getElementById('image-url').value = photo.rel;
+            loadImageFromUrl();
+
+            thumbEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
         // Добавление кнопки

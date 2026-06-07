@@ -18,7 +18,15 @@ def parse_scenarios_js(path):
     """Прочитать SCENARIOS из JS-файла и вернуть как dict.
 
     Бросает ValueError, если SCENARIOS не найден.
+    Также регистрирует директорию scenarios.js как базу для
+    относительных путей к картинкам (см. image_loader).
     """
+    try:
+        from image_loader import register_base_dir
+        register_base_dir(Path(path))
+    except ImportError:
+        pass  # image_loader недоступен — не критично
+
     text = Path(path).read_text(encoding="utf-8")
 
     m = re.search(r"const\s+SCENARIOS\s*=\s*\{", text)
