@@ -48,12 +48,13 @@ class FakeViewer:
         if not self.is_waiting:
             return None
         for btn in self.step.get("buttons", []):
-            cx = btn["x"] / 100.0 * self.img_w
-            cy = btn["y"] / 100.0 * self.img_h
-            left = cx - btn["width"] / 2
-            top = cy - btn["height"] / 2
-            right = left + btn["width"]
-            bottom = top + btn["height"]
+            cx, cy = _btn_center(btn, self.img_w, self.img_h)
+            bw = btn.get("width", 100)
+            bh = btn.get("height", 60)
+            left = cx - bw / 2
+            top = cy - bh / 2
+            right = left + bw
+            bottom = top + bh
             if left <= x <= right and top <= y <= bottom:
                 return self._action(btn)
         return self._miss()
@@ -100,10 +101,27 @@ def section(title):
 
 
 def click_btn(v, btn):
-    """Кликнуть в центр кнопки (учитывая реальный размер картинки)."""
-    cx = btn["x"] / 100.0 * v.img_w
-    cy = btn["y"] / 100.0 * v.img_h
+    """Кликнуть в центр кнопки (учитывая реальный размер картинки).
+
+    Поддерживает оба формата:
+      - новый: cx, cy (нативные пиксели)
+      - старый: x, y (проценты 0-100)
+    """
+    cx, cy = _btn_center(btn, v.img_w, v.img_h)
     return v.click(cx, cy)
+
+
+def _btn_center(btn, img_w, img_h):
+    """Получить центр кнопки в нативных пикселях картинки.
+    Поддерживает старый (x, y в %) и новый (cx, cy в px) формат."""
+    if "cx" in btn and "cy" in btn:
+        return float(btn["cx"]), float(btn["cy"])
+    if "x" in btn and "y" in btn:
+        x, y = float(btn["x"]), float(btn["y"])
+        if x <= 100 and y <= 100:
+            return x / 100.0 * img_w, y / 100.0 * img_h
+        return x, y
+    return 0.0, 0.0
 
 
 # --------- tests --------- #
@@ -156,12 +174,13 @@ def test_button_coords():
     ok = True
     print(f"  Кнопки (в пикселях при {NATIVE_W}x{NATIVE_H}):")
     for btn in step["buttons"]:
-        cx = btn["x"] / 100.0 * NATIVE_W
-        cy = btn["y"] / 100.0 * NATIVE_H
-        left = cx - btn["width"] / 2
-        top = cy - btn["height"] / 2
-        right = left + btn["width"]
-        bottom = top + btn["height"]
+        cx, cy = _btn_center(btn, NATIVE_W, NATIVE_H)
+        bw = btn.get("width", 100)
+        bh = btn.get("height", 60)
+        left = cx - bw / 2
+        top = cy - bh / 2
+        right = left + bw
+        bottom = top + bh
         print(f"    {btn['id']}: центр=({cx:.0f}, {cy:.0f}), "
               f"rect=({left:.0f}, {top:.0f}, {right:.0f}, {bottom:.0f})")
         ok &= check(0 <= cx <= NATIVE_W, f"  центр X {btn['id']} в пределах экрана")
@@ -244,12 +263,13 @@ def test_close_button_no_overlap():
 
     ok = True
     for btn in step.get("buttons", []):
-        cx = btn["x"] / 100.0 * w
-        cy = btn["y"] / 100.0 * h
-        left = cx - btn["width"] / 2
-        top = cy - btn["height"] / 2
-        right = left + btn["width"]
-        bottom = top + btn["height"]
+        cx, cy = _btn_center(btn, w, h)
+        bw = btn.get("width", 100)
+        bh = btn.get("height", 60)
+        left = cx - bw / 2
+        top = cy - bh / 2
+        right = left + bw
+        bottom = top + bh
         in_titlebar = not (
             right < titlebar_left or
             left > titlebar_right or
@@ -275,16 +295,13 @@ def test_scaling():
     ok = True
     for scale in (1.0, 0.75, 0.5, 0.25):
         for btn in step.get("buttons", []):
-            # Image-coords кнопки
-            img_cx = btn["x"] / 100.0 * w
-            img_cy = btn["y"] / 100.0 * h
+            # Image-coords кнопки (нативные пиксели)
+            img_cx, img_cy = _btn_center(btn, w, h)
             # Canvas-coords при scale
-            img_w_scaled = w * scale
-            img_h_scaled = h * scale
-            offset_x = 50  # произвольный offset
+            offset_x = 50
             offset_y = 30
-            canvas_cx = offset_x + (btn["x"] / 100.0) * img_w_scaled
-            canvas_cy = offset_y + (btn["y"] / 100.0) * img_h_scaled
+            canvas_cx = offset_x + img_cx * scale
+            canvas_cy = offset_y + img_cy * scale
             # Обратно в image-coords
             recovered_x = (canvas_cx - offset_x) / scale
             recovered_y = (canvas_cy - offset_y) / scale

@@ -40,20 +40,20 @@ const SCENARIOS = {
                         type: 'bet_100',
                         label: '100%',
                         amount: '',
-                        x: 70.6,
-                        y: 80.9,
-                        width: 40,
-                        height: 30
+                        cx: 1372,
+                        cy: 872,
+                        width: 60,
+                        height: 45
                     },
                     {
                         id: 'slider_click',
                         type: 'slider_click',
                         label: 'Slider',
                         amount: '',
-                        x: 82.9,
-                        y: 80.8,
-                        width: 45,
-                        height: 15,
+                        cx: 1618,
+                        cy: 874,
+                        width: 75,
+                        height: 25,
                         sliderClicks: 4
                     },
                     {
@@ -61,10 +61,10 @@ const SCENARIOS = {
                         type: 'raise',
                         label: 'Raise to',
                         amount: '',
-                        x: 81.1,
-                        y: 89.0,
-                        width: 90,
-                        height: 60
+                        cx: 1580,
+                        cy: 962,
+                        width: 150,
+                        height: 100
                     }
                 ],
                 feedback: {
@@ -96,8 +96,8 @@ const SCENARIOS = {
                         type: 'bet_100',
                         label: '100%',
                         amount: '',
-                        x: 71.1,
-                        y: 76.6,
+                        cx: 1364,
+                        cy: 826,
                         width: 40,
                         height: 30
                     },
@@ -106,8 +106,8 @@ const SCENARIOS = {
                         type: 'slider_click',
                         label: 'Slider',
                         amount: '',
-                        x: 82.6,
-                        y: 76.6,
+                        cx: 1584,
+                        cy: 826,
                         width: 40,
                         height: 20,
                         sliderClicks: 3
@@ -117,8 +117,8 @@ const SCENARIOS = {
                         type: 'raise',
                         label: 'Raise to',
                         amount: '',
-                        x: 80.9,
-                        y: 84.0,
+                        cx: 1552,
+                        cy: 906,
                         width: 100,
                         height: 60
                     }

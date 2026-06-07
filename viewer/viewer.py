@@ -328,14 +328,34 @@ class PokerViewer:
         if not step:
             return
         for btn in step.get("buttons", []):
-            cx = self.img_offset_x + (btn["x"] / 100.0) * self.img_w * self.img_scale
-            cy = self.img_offset_y + (btn["y"] / 100.0) * self.img_h * self.img_scale
-            w = btn["width"] * self.img_scale
-            h = btn["height"] * self.img_scale
+            cx, cy = self._button_center(btn)
+            cx_canvas = self.img_offset_x + cx * self.img_scale
+            cy_canvas = self.img_offset_y + cy * self.img_scale
+            w = btn.get("width", 100) * self.img_scale
+            h = btn.get("height", 60) * self.img_scale
             self.canvas.create_rectangle(
-                cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2,
+                cx_canvas - w / 2, cy_canvas - h / 2,
+                cx_canvas + w / 2, cy_canvas + h / 2,
                 outline="red", width=2,
             )
+
+    def _button_center(self, btn: dict) -> tuple:
+        """Получить центр кнопки в нативных пикселях картинки.
+
+        Поддерживает два формата:
+          - новый: cx/cy (нативные пиксели)
+          - старый: x/y (проценты от 0 до 100)
+        """
+        if "cx" in btn and "cy" in btn:
+            return float(btn["cx"]), float(btn["cy"])
+        if "x" in btn and "y" in btn:
+            x, y = float(btn["x"]), float(btn["y"])
+            # Если значения выглядят как проценты (<=100) — конвертируем
+            if x <= 100 and y <= 100 and self.img_w and self.img_h:
+                return x / 100.0 * self.img_w, y / 100.0 * self.img_h
+            # Иначе считаем нативными пикселями
+            return x, y
+        return 0.0, 0.0
 
     def _update_status(self):
         if not self.scenario:
@@ -399,12 +419,14 @@ class PokerViewer:
 
         step = self._current_step()
         for btn in step.get("buttons", []):
-            cx = btn["x"] / 100.0 * self.img_w
-            cy = btn["y"] / 100.0 * self.img_h
-            left = cx - btn["width"] / 2
-            top = cy - btn["height"] / 2
-            right = left + btn["width"]
-            bottom = top + btn["height"]
+            # Координаты кнопки: нативные пиксели (cx, cy) или проценты (x, y)
+            cx, cy = self._button_center(btn)
+            bw = btn.get("width", 100)
+            bh = btn.get("height", 60)
+            left = cx - bw / 2
+            top = cy - bh / 2
+            right = left + bw
+            bottom = top + bh
             if left <= img_x <= right and top <= img_y <= bottom:
                 self._handle_action(btn)
                 return
@@ -754,8 +776,10 @@ def main():
                 None,
             )
             if btn:
-                cx = viewer.img_offset_x + (btn["x"] / 100.0) * viewer.img_w * viewer.img_scale
-                cy = viewer.img_offset_y + (btn["y"] / 100.0) * viewer.img_h * viewer.img_scale
+                # Используем _button_center для совместимости с обоими форматами
+                cx_native, cy_native = viewer._button_center(btn)
+                cx = viewer.img_offset_x + cx_native * viewer.img_scale
+                cy = viewer.img_offset_y + cy_native * viewer.img_scale
                 print(f"[SELFTEST] simulating click at canvas ({cx:.0f}, {cy:.0f})")
                 root.after(500, lambda: _self_test_click(viewer, root, int(cx), int(cy)))
             root.mainloop()

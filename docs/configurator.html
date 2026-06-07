@@ -278,12 +278,14 @@
         .image-container {
             position: relative;
             background: #000;
-            min-height: 500px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            line-height: 0;       /* убирает лишний отступ вокруг img */
+            font-size: 0;
+            /* НЕ используем flex+centering — иначе контейнер будет шире
+               картинки и проценты кнопок будут считаться от контейнера,
+               а не от картинки. С этой стилизацией контейнер = размеру img,
+               и rect.width/height в JS равны реальным размерам картинки. */
         }
-        
+
         .image-container img {
             max-width: 100%;
             max-height: 70vh;
@@ -553,6 +555,12 @@
                             📁 Из photos/
                         </button>
                     </div>
+                    <div style="margin-top: 6px; font-size: 11px; color: #888;">
+                        Натуральный размер: <span id="image-size-info" style="color: #ffd700; font-family: monospace;">—</span>
+                        <span style="margin-left: 12px; color: #666;">
+                            (cx, cy, width, height — нативные пиксели картинки)
+                        </span>
+                    </div>
                     <div id="photos-gallery" class="photos-gallery" style="display: none;">
                         <div class="photos-gallery-header">
                             <span>📂 <span id="photos-dir-name">photos/</span> — <span id="photos-count">0</span> файлов</span>
@@ -695,30 +703,55 @@
         
         function loadStreetData(street) {
             const data = streetData[street];
-            
+
             // Устанавливаем URL
             document.getElementById('image-url').value = data.imageUrl;
-            
+
             // Загружаем изображение
             const container = document.getElementById('image-container');
             container.innerHTML = '';
-            
+
             if (data.imageUrl) {
                 const img = document.createElement('img');
                 img.src = data.imageUrl;
                 img.id = 'screenshot-img';
                 img.onload = function() {
                     document.querySelector(`[data-street="${street}"]`).classList.add('has-image');
+                    // Показать натуральный размер картинки — для справки
+                    const info = document.getElementById('image-size-info');
+                    if (info) {
+                        info.textContent = `${img.naturalWidth}×${img.naturalHeight}`;
+                    }
+                    // Миграция со старого формата (x/y в %) на новый (cx/cy в нативных px)
+                    data.buttons.forEach(btn => {
+                        if (btn.cx === undefined && btn.x !== undefined) {
+                            // Старый формат: x/y — проценты. Конвертируем в cx/cy в нативных px
+                            const x = parseFloat(btn.x);
+                            const y = parseFloat(btn.y);
+                            if (x <= 100 && y <= 100) {
+                                btn.cx = Math.round(x / 100.0 * img.naturalWidth);
+                                btn.cy = Math.round(y / 100.0 * img.naturalHeight);
+                            } else {
+                                // Уже пиксели — копируем как есть
+                                btn.cx = Math.round(x);
+                                btn.cy = Math.round(y);
+                            }
+                            delete btn.x;
+                            delete btn.y;
+                        }
+                    });
+                    // Восстанавливаем кнопки ПОСЛЕ загрузки картинки,
+                    // чтобы контейнер уже имел правильный размер (= размер картинки)
+                    data.buttons.forEach(btn => renderButton(btn));
                 };
                 img.onerror = function() {
                     container.innerHTML = '<div style="color: #ff4444; text-align: center;">Ошибка загрузки изображения</div>';
                 };
                 container.appendChild(img);
-                
-                // Восстанавливаем кнопки
-                data.buttons.forEach(btn => {
-                    renderButton(btn);
-                });
+
+                // Примечание: renderButton вызывается в img.onload,
+                // а не здесь — потому что до загрузки картинки контейнер
+                // может иметь другой размер (например, 0x0).
             } else {
                 container.innerHTML = '<div style="color: #666; text-align: center;">Введите URL изображения для этой улицы</div>';
             }
@@ -845,6 +878,15 @@
             const width = parseInt(document.getElementById('btn-width').value) || 140;
             const height = parseInt(document.getElementById('btn-height').value) || 65;
 
+            // cx/cy — центр кнопки в НАТИВНЫХ пикселях картинки
+            // (не путать с % — раньше использовался процент, но он ломался
+            // когда картинка в конфигураторе рендерилась в масштабе,
+            // отличном от native size в Python viewer).
+            // Стартовые значения — в центре нижней части картинки.
+            const img = container.querySelector('img');
+            const natW = img.naturalWidth;
+            const natH = img.naturalHeight;
+
             const button = {
                 id: `btn-${buttonIdCounter++}`,
                 type: type,
@@ -852,8 +894,8 @@
                 amount: amount,
                 width: width,
                 height: height,
-                x: 50,
-                y: 85
+                cx: Math.round(natW * 0.5),
+                cy: Math.round(natH * 0.85)
             };
 
             // Для ползунка сохраняем количество кликов
@@ -866,43 +908,60 @@
             updateButtonList();
             generateCode();
         }
-        
+
         function renderButton(button) {
             const container = document.getElementById('image-container');
             const areaEl = document.createElement('div');
             areaEl.className = 'click-area';
             areaEl.id = button.id;
-            areaEl.style.left = `calc(${button.x}% - ${button.width / 2}px)`;
-            areaEl.style.top = `calc(${button.y}% - ${button.height / 2}px)`;
-            areaEl.style.width = `${button.width}px`;
-            areaEl.style.height = `${button.height}px`;
+            // cx, cy — нативные пиксели; конвертируем в px для отображения
+            // через scale = clientWidth / naturalWidth.
+            const img = container.querySelector('img');
+            const scaleX = img.clientWidth / img.naturalWidth;
+            const scaleY = img.clientHeight / img.naturalHeight;
+            const leftPx = button.cx * scaleX;
+            const topPx = button.cy * scaleY;
+            const wPx = button.width * scaleX;
+            const hPx = button.height * scaleY;
+
+            areaEl.style.left = `${leftPx}px`;
+            areaEl.style.top = `${topPx}px`;
+            areaEl.style.transform = 'translate(-50%, -50%)';
+            areaEl.style.width = `${wPx}px`;
+            areaEl.style.height = `${hPx}px`;
             areaEl.innerHTML = `<div class="click-area-label">${button.label}</div>`;
-            
+
             // Drag functionality
             let isDragging = false;
-            
+
             areaEl.addEventListener('mousedown', function(e) {
                 isDragging = true;
                 areaEl.classList.add('dragging');
                 e.preventDefault();
             });
-            
+
             document.addEventListener('mousemove', function(e) {
                 if (!isDragging) return;
-                
+
                 const rect = container.getBoundingClientRect();
-                let newX = e.clientX - rect.left - button.width / 2;
-                let newY = e.clientY - rect.top - button.height / 2;
-                
-                newX = Math.max(0, Math.min(newX, rect.width - button.width));
-                newY = Math.max(0, Math.min(newY, rect.height - button.height));
-                
-                areaEl.style.left = `${newX}px`;
-                areaEl.style.top = `${newY}px`;
-                
-                button.x = ((newX + button.width / 2) / rect.width) * 100;
-                button.y = ((newY + button.height / 2) / rect.height) * 100;
-                
+                // click position in rendered image coords
+                const clickRenderedX = e.clientX - rect.left;
+                const clickRenderedY = e.clientY - rect.top;
+                // Конвертируем в нативные пиксели — это устраняет проблему
+                // "shift to the left" при разных масштабах в конфигураторе vs viewer.
+                const natX = clickRenderedX / scaleX;
+                const natY = clickRenderedY / scaleY;
+                const cx = Math.max(0, Math.min(natX, img.naturalWidth));
+                const cy = Math.max(0, Math.min(natY, img.naturalHeight));
+
+                // Обновить визуальную позицию
+                areaEl.style.left = `${cx * scaleX}px`;
+                areaEl.style.top = `${cy * scaleY}px`;
+
+                // Сохранить в нативных пикселях
+                button.cx = Math.round(cx);
+                button.cy = Math.round(cy);
+
                 updateButtonList();
                 generateCode();
             });
@@ -946,7 +1005,7 @@
                 return `
                 <div class="button-item">
                     <span>${btn.label}${btn.amount ? ' ' + btn.amount : ''}${extraInfo}</span>
-                    <span class="pos-display">${btn.x.toFixed(1)}%, ${btn.y.toFixed(1)}%</span>
+                    <span class="pos-display">(${btn.cx}, ${btn.cy})</span>
                     <button onclick="removeButton(${idx})">×</button>
                 </div>
             `}).join('');
@@ -1067,8 +1126,8 @@ ${data.buttons.map(btn => {
                     type: '${btn.type}',
                     label: '${btn.label}',
                     amount: '${btn.amount || ''}',
-                    x: ${btn.x.toFixed(1)},
-                    y: ${btn.y.toFixed(1)},
+                    cx: ${btn.cx},
+                    cy: ${btn.cy},
                     width: ${btn.width},
                     height: ${btn.height}${extraProps}
                 }`;
