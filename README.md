@@ -19,16 +19,47 @@ open docs/index.html
 https://yourname.github.io/gg_emulator_tester/
 ```
 
+## 🖥️ Desktop Viewer (для HDMI capture)
+
+Если бот читает экран через **HDMI capture** и использует CV с конкретными
+настройками — web-версия не подходит (картинка масштабируется под окно).
+Используйте десктопный viewer из `viewer/`:
+
+```bash
+# Установка (создаёт venv в viewer/.venv, ничего не ставит в систему)
+make init
+
+# Проверить зависимости
+make check
+
+# Посмотреть доступные сценарии
+make list
+
+# Запустить viewer
+make run SCENARIO=my_test
+```
+
+Откроется **borderless окно точно по нативному размеру картинки** (например,
+1918×1078) в позиции (0, 0) — без titlebar/адресной строки/UI браузера.
+HDMI capture получает 1:1 копию исходного скриншота.
+
+Подробнее: [`viewer/README.md`](viewer/README.md).
+
 ## Архитектура
 
 ```
 GitHub Pages / CDN          GitHub Repository
-┌─────────────────┐         ┌─────────────────┐
-│  preflop.png    │         │   index.html    │
-│  flop.png       │◄────────┤   scenarios.js  │
-│  turn.png       │  URL    │   emulator.js   │
-│  river.png      │         └─────────────────┘
-└─────────────────┘
+┌─────────────────┐         ┌──────────────────────────┐
+│  preflop.png    │         │   docs/                  │
+│  flop.png       │◄────────┤   ├── index.html         │ ← web-тесты
+│  turn.png       │  URL    │   ├── configurator.html  │
+│  river.png      │         │   └── js/scenarios.js    │ ← source of truth
+└─────────────────┘         │                          │
+                            │   viewer/                │ ← desktop для HDMI
+                            │   ├── viewer.py          │
+                            │   ├── scenario_loader.py │
+                            │   └── image_loader.py    │
+                            └──────────────────────────┘
 ```
 
 **Изображения** загружаются по URL (не хранятся локально)  
@@ -193,14 +224,25 @@ pyautogui.click(x, y)
 ## Структура репозитория
 
 ```
-docs/                           ← GitHub Pages (корень сайта) и основной код
-├── index.html                  ← основное приложение
-├── configurator.html           ← создание тестов
-├── css/
-│   └── style.css
-└── js/
-    ├── scenarios.js            ← все тесты здесь
-    └── emulator.js
+gg_emulator_tester/
+├── docs/                           ← GitHub Pages (корень сайта) и основной код
+│   ├── index.html                  ← основное web-приложение
+│   ├── configurator.html           ← создание тестов
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── scenarios.js            ← все тесты здесь (source of truth)
+│       └── emulator.js
+│
+├── viewer/                         ← ДЕСКТОПНЫЙ viewer (для HDMI capture)
+│   ├── viewer.py                   ← главный класс + CLI
+│   ├── scenario_loader.py          ← парсер scenarios.js
+│   ├── image_loader.py             ← загрузка/кеш картинок
+│   ├── test_smoke.py               ← smoke-тесты без GUI
+│   ├── requirements.txt
+│   └── README.md
+│
+└── README.md                       ← этот файл
 ```
 
 **Изображения НЕ хранятся в репозитории** - только URL!

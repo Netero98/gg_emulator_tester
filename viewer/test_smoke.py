@@ -1,0 +1,253 @@
+"""
+Smoke-тест viewer-логики без GUI.
+
+Проверяет:
+  1. Парсинг scenarios.js
+  2. Скачивание и кеширование картинки
+  3. Нативный размер картинки
+  4. Расчёт пиксельных координат кнопок из процентов
+  5. Логику валидации (action / size / slider)
+  6. Детекцию missclick
+  7. Навигацию по шагам
+
+Запуск: python3 viewer/test_smoke.py
+"""
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).parent
+sys.path.insert(0, str(HERE))
+
+from scenario_loader import parse_scenarios_js
+from image_loader import load_image, SIZE_TYPES, ACTION_TYPES, CACHE_DIR
+from PIL import Image
+
+REPO = HERE.parent
+SCENARIOS_JS = REPO / "docs" / "js" / "scenarios.js"
+
+# Глобальный реальный размер (заполняется в test_image)
+NATIVE_W = 1920
+NATIVE_H = 1080
+
+
+class FakeViewer:
+    """Минимальная копия PokerViewer._handle_action/_handle_missclick
+    без tkinter. Сверяем поведение с реальным viewer.py."""
+
+    def __init__(self, step, img_w, img_h):
+        self.step = step
+        self.img_w = img_w
+        self.img_h = img_h
+        self.selected_size = None
+        self.slider_clicks = 0
+        self.is_waiting = True
+        self.results = []
+
+    def click(self, x, y):
+        if not self.is_waiting:
+            return None
+        for btn in self.step.get("buttons", []):
+            cx = btn["x"] / 100.0 * self.img_w
+            cy = btn["y"] / 100.0 * self.img_h
+            left = cx - btn["width"] / 2
+            top = cy - btn["height"] / 2
+            right = left + btn["width"]
+            bottom = top + btn["height"]
+            if left <= x <= right and top <= y <= bottom:
+                return self._action(btn)
+        return self._miss()
+
+    def _action(self, btn):
+        if btn["type"] in SIZE_TYPES:
+            self.selected_size = btn["type"]
+            self.slider_clicks = 0
+            return "size"
+        if btn["type"] == "slider_click":
+            self.slider_clicks += 1
+            return "slider"
+        if btn["type"] in ACTION_TYPES:
+            expected = self.step["correctAction"]
+            is_action_ok = btn["type"] == expected["type"]
+            expected_size = expected.get("size")
+            expected_slider = expected.get("sliderClicks", 0) or 0
+            is_size_ok = (self.selected_size == f"bet_{expected_size}") if expected_size else (self.selected_size is None)
+            is_slider_ok = self.slider_clicks == expected_slider
+            is_correct = is_action_ok and is_size_ok and is_slider_ok
+            self.is_waiting = False
+            self.results.append({"correct": is_correct, "type": btn["type"]})
+            return "correct" if is_correct else "wrong"
+        return None
+
+    def _miss(self):
+        self.is_waiting = False
+        self.results.append({"correct": False, "type": "missclick"})
+        return "miss"
+
+
+# --------- helpers --------- #
+
+def check(cond, msg):
+    if not cond:
+        print(f"  ✗ FAIL: {msg}")
+        return False
+    print(f"  ✓ {msg}")
+    return True
+
+
+def section(title):
+    print(f"\n=== {title} ===")
+
+
+def click_btn(v, btn):
+    """Кликнуть в центр кнопки (учитывая реальный размер картинки)."""
+    cx = btn["x"] / 100.0 * v.img_w
+    cy = btn["y"] / 100.0 * v.img_h
+    return v.click(cx, cy)
+
+
+# --------- tests --------- #
+
+def test_parse():
+    section("Парсинг scenarios.js")
+    scenarios = parse_scenarios_js(SCENARIOS_JS)
+    ok = True
+    ok &= check(bool(scenarios), "scenarios не пустой")
+    ok &= check("my_test" in scenarios, "'my_test' найден")
+    s = scenarios["my_test"]
+    ok &= check(len(s["steps"]) >= 1, f"есть шаги ({len(s['steps'])})")
+    step0 = s["steps"][0]
+    ok &= check(step0["id"] == "preflop", "первый шаг — preflop")
+    ok &= check("image" in step0 and step0["image"].startswith("http"), "есть URL картинки")
+    ok &= check(len(step0["buttons"]) == 3, f"3 кнопки ({len(step0['buttons'])})")
+    return ok
+
+
+def test_image():
+    section("Загрузка и кеш картинки")
+    global NATIVE_W, NATIVE_H
+    scenarios = parse_scenarios_js(SCENARIOS_JS)
+    url = scenarios["my_test"]["steps"][0]["image"]
+    print(f"  URL: {url}")
+
+    img1 = load_image(url)
+    w, h = img1.size
+    ok = True
+    ok &= check(isinstance(img1, Image.Image), f"PIL.Image загружен ({w}x{h})")
+    # Реальный размер может быть 1920x1080 или близко (например, 1918x1078 если кадр из видео)
+    near_fullhd = abs(w - 1920) <= 4 and abs(h - 1080) <= 4
+    ok &= check(near_fullhd, f"нативный размер близок к Full HD ({w}x{h})")
+    ok &= check(abs(w / h - 16 / 9) < 0.01, f"соотношение сторон ≈ 16:9 (факт: {w/h:.4f})")
+
+    cache_files = list(CACHE_DIR.glob("*"))
+    ok &= check(len(cache_files) >= 1, f"кеш создан ({len(cache_files)} файл(ов))")
+
+    img2 = load_image(url)
+    ok &= check(img2.size == img1.size, "повторная загрузка работает")
+
+    NATIVE_W, NATIVE_H = w, h
+    return ok
+
+
+def test_button_coords():
+    section(f"Пиксельные координаты кнопок (при {NATIVE_W}x{NATIVE_H})")
+    scenarios = parse_scenarios_js(SCENARIOS_JS)
+    step = scenarios["my_test"]["steps"][0]
+    ok = True
+    print(f"  Кнопки (в пикселях при {NATIVE_W}x{NATIVE_H}):")
+    for btn in step["buttons"]:
+        cx = btn["x"] / 100.0 * NATIVE_W
+        cy = btn["y"] / 100.0 * NATIVE_H
+        left = cx - btn["width"] / 2
+        top = cy - btn["height"] / 2
+        right = left + btn["width"]
+        bottom = top + btn["height"]
+        print(f"    {btn['id']}: центр=({cx:.0f}, {cy:.0f}), "
+              f"rect=({left:.0f}, {top:.0f}, {right:.0f}, {bottom:.0f})")
+        ok &= check(0 <= cx <= NATIVE_W, f"  центр X {btn['id']} в пределах экрана")
+        ok &= check(0 <= cy <= NATIVE_H, f"  центр Y {btn['id']} в пределах экрана")
+    return ok
+
+
+def test_correct_sequence():
+    section("Правильная последовательность: bet_100 → slider(3) → raise")
+    scenarios = parse_scenarios_js(SCENARIOS_JS)
+    step = scenarios["my_test"]["steps"][0]
+    v = FakeViewer(step, NATIVE_W, NATIVE_H)
+
+    bet_100 = next(b for b in step["buttons"] if b["id"] == "bet_100")
+    slider = next(b for b in step["buttons"] if b["type"] == "slider_click")
+    raise_btn = next(b for b in step["buttons"] if b["type"] == "raise")
+
+    ok = True
+    r = click_btn(v, bet_100)
+    ok &= check(r == "size", "bet_100 зарегистрирован как size")
+    r = click_btn(v, slider)
+    ok &= check(r == "slider", "первый slider click зарегистрирован")
+    r = click_btn(v, slider)
+    ok &= check(r == "slider", "второй slider click")
+    r = click_btn(v, slider)
+    ok &= check(r == "slider", "третий slider click")
+    r = click_btn(v, raise_btn)
+    ok &= check(r == "correct", "raise → правильно")
+    return ok
+
+
+def test_wrong_size():
+    section("Неправильный размер: bet_100 → raise (без slider)")
+    scenarios = parse_scenarios_js(SCENARIOS_JS)
+    step = scenarios["my_test"]["steps"][0]
+    v = FakeViewer(step, NATIVE_W, NATIVE_H)
+    bet_100 = next(b for b in step["buttons"] if b["id"] == "bet_100")
+    raise_btn = next(b for b in step["buttons"] if b["type"] == "raise")
+
+    ok = True
+    click_btn(v, bet_100)
+    r = click_btn(v, raise_btn)
+    ok &= check(r == "wrong", "raise без slider → wrong")
+    return ok
+
+
+def test_missclick():
+    section("Missclick: клик в пустую область")
+    scenarios = parse_scenarios_js(SCENARIOS_JS)
+    step = scenarios["my_test"]["steps"][0]
+    v = FakeViewer(step, NATIVE_W, NATIVE_H)
+    r = v.click(10, 10)  # угол картинки, далеко от кнопок
+    return check(r == "miss", "клик в (10,10) → miss")
+
+
+def test_no_size_when_expected():
+    section("Действие без выбора размера, когда ожидался size")
+    scenarios = parse_scenarios_js(SCENARIOS_JS)
+    step = scenarios["my_test"]["steps"][0]
+    v = FakeViewer(step, NATIVE_W, NATIVE_H)
+    raise_btn = next(b for b in step["buttons"] if b["type"] == "raise")
+    r = click_btn(v, raise_btn)
+    return check(r == "wrong", "raise без bet_100 → wrong")
+
+
+# --------- main --------- #
+
+def main():
+    print("Smoke-тест Poker Emulator Viewer (без GUI)\n")
+    results = []
+    results.append(("parse", test_parse()))
+    results.append(("image", test_image()))
+    results.append(("coords", test_button_coords()))
+    results.append(("correct_seq", test_correct_sequence()))
+    results.append(("wrong_size", test_wrong_size()))
+    results.append(("missclick", test_missclick()))
+    results.append(("no_size", test_no_size_when_expected()))
+
+    print("\n" + "=" * 60)
+    passed = sum(1 for _, ok in results if ok)
+    total = len(results)
+    for name, ok in results:
+        mark = "✓" if ok else "✗"
+        print(f"  {mark} {name}")
+    print(f"\n{passed}/{total} групп тестов прошли успешно")
+    return 0 if passed == total else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

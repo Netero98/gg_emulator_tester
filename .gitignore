@@ -1,1 +1,11 @@
 .idea
+*.pyc
+__pycache__/
+
+# Python venv
+viewer/.venv/
+venv/
+
+# Viewer runtime artifacts
+viewer/cache/
+*.log
