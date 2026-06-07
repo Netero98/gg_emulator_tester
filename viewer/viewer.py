@@ -33,16 +33,18 @@ except ImportError:
 # ---------------------------- viewer ---------------------------- #
 
 class PokerViewer:
-    def __init__(self, root, scenarios, scenario_id, position=(0, 0),
+    def __init__(self, root, scenarios, scenario_id=None, position=(0, 0),
                  topmost=True, debug=False, log_clicks=False,
                  start_fullscreen=False):
         self.root = root
         self.scenarios = scenarios
-        if scenario_id not in scenarios:
+        # scenario_id опционален: если None — не грузим сценарий, пользователь
+        # выбирает из меню Scenario.
+        if scenario_id is not None and scenario_id not in scenarios:
             ids = ", ".join(s[0] for s in list_scenarios(scenarios))
             raise ValueError(f"Scenario '{scenario_id}' not found. Available: {ids}")
         self.scenario_id = scenario_id
-        self.scenario = scenarios[scenario_id]
+        self.scenario = scenarios[scenario_id] if scenario_id else None
         self.position = position
         self.topmost = topmost
         self.debug = debug
@@ -79,11 +81,16 @@ class PokerViewer:
         if self.topmost:
             self.root.attributes("-topmost", True)
 
-        self._log(f"[INIT] Scenario: {self.scenario_id} ({self.scenario.get('name', '')})")
-        self._log(f"[INIT] Steps: {len(self.scenario['steps'])}")
+        if self.scenario:
+            self._log(f"[INIT] Scenario: {self.scenario_id} ({self.scenario.get('name', '')})")
+            self._log(f"[INIT] Steps: {len(self.scenario['steps'])}")
+        else:
+            available = ", ".join(s[0] for s in list_scenarios(scenarios))
+            self._log("[INIT] Сценарий не выбран — откройте меню Scenario для выбора")
+            self._log(f"[INIT] Доступно: {available}")
         self._log("[KEYS] F11=fullscreen  Esc=exit-FS/quit  Ctrl+Q=quit  R=reset  "
-                  "N/→=next  ←=prev  D=debug  Right-click=menu")
-        self.render_step()
+                  "N/→=next  ←=prev  D=debug")
+        self._render_placeholder() if not self.scenario else self.render_step()
 
         if start_fullscreen:
             self.root.after(100, self._toggle_fullscreen)
@@ -93,7 +100,8 @@ class PokerViewer:
     def _setup_window(self):
         # Нормальное окно (НЕ override-redirect) — так WM управляет им
         # стандартным способом: titlebar X, Alt+F4, fullscreen, etc.
-        self.root.title(f"Poker Viewer — {self.scenario_id}")
+        title_suffix = self.scenario_id if self.scenario_id else "(no scenario)"
+        self.root.title(f"Poker Viewer — {title_suffix}")
         self.root.minsize(640, 480)
         self.root.configure(bg="#000")
         # Закрытие через titlebar X и Alt+F4
@@ -197,6 +205,9 @@ class PokerViewer:
             self._quit()
 
     def _on_canvas_resize(self, event):
+        if not self.scenario:
+            self._render_placeholder()
+            return
         if self.original_pil_image is not None:
             self._render_image()
 
@@ -229,7 +240,7 @@ class PokerViewer:
         self.step_idx = 0
         self.results = []
         self.root.title(f"Poker Viewer — {scenario_id}")
-        self._log(f"[SCENARIO] switched to {scenario_id}")
+        self._log(f"[SCENARIO] switched to {scenario_id} ({self.scenario.get('name', '')})")
         self.render_step()
 
     def render_step(self):
@@ -327,6 +338,13 @@ class PokerViewer:
             )
 
     def _update_status(self):
+        if not self.scenario:
+            available = len(self.scenarios)
+            self.status_var.set(
+                f"No scenario selected  |  {available} available in Scenario menu  |  "
+                f"F11=fullscreen  Ctrl+Q=quit"
+            )
+            return
         step = self._current_step()
         if not step:
             return
@@ -338,10 +356,29 @@ class PokerViewer:
             f"F11=fullscreen  Ctrl+Q=quit  R=reset"
         )
 
+    def _render_placeholder(self):
+        """Показать плейсхолдер когда сценарий не выбран."""
+        self.canvas.delete("all")
+        self.canvas.update_idletasks()
+        cw = max(self.canvas.winfo_width(), 1)
+        ch = max(self.canvas.winfo_height(), 1)
+        self.canvas.create_text(
+            cw / 2, ch / 2,
+            text="Сценарий не выбран\n\nОткройте меню 'Scenario' для выбора",
+            fill="#888",
+            font=("Arial", 18),
+            justify="center",
+        )
+        self._update_status()
+
     # ----- click handling ----- #
 
     def _on_click(self, event):
         x, y = event.x, event.y
+
+        # Без сценария — игнорируем клики по канвасу
+        if not self.scenario:
+            return
 
         if not self.is_waiting:
             return
@@ -633,7 +670,7 @@ def main():
     ap = argparse.ArgumentParser(
         description="Poker Emulator Viewer — нормальное desktop-приложение для покерных скриншотов",
     )
-    ap.add_argument("--scenario", help="ID сценария из scenarios.js (обязателен без --list)")
+    ap.add_argument("--scenario", help="ID сценария из scenarios.js (опционально — можно выбрать в меню Scenario)")
     ap.add_argument(
         "--scenarios-js",
         default=str(repo_root / "docs" / "js" / "scenarios.js"),
@@ -683,9 +720,6 @@ def main():
             print(f"  {sid}\t{name}")
         return 0
 
-    if not args.scenario:
-        ap.error("--scenario is required (or use --list)")
-
     try:
         x, y = (int(v) for v in args.position.split(","))
     except ValueError:
@@ -707,6 +741,12 @@ def main():
 
         if args.self_test:
             root.update_idletasks()
+            # Если сценарий не задан — берём первый из списка
+            if not viewer.scenario:
+                first_id = next(iter(scenarios))
+                print(f"[SELFTEST] no scenario specified, auto-loading '{first_id}'")
+                viewer._load_scenario(first_id)
+                root.update_idletasks()
             # Кликаем в центр bet_100
             btn = next(
                 (b for b in viewer.scenario["steps"][0]["buttons"]

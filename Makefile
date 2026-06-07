@@ -1,16 +1,17 @@
 # Poker Emulator Viewer — Makefile
 #
 # Использование:
-#   make init                       — создать venv и поставить зависимости
-#   make list                       — список доступных сценариев
-#   make run SCENARIO=my_test       — запустить viewer
-#   make run SCENARIO=my_test FULLSCREEN=1  — сразу в fullscreen (для HDMI capture)
-#   make smoke                      — smoke-тесты без GUI
-#   make check                      — проверить зависимости
-#   make info                       — информация о системе
-#   make clean-cache                — очистить кеш картинок
-#   make clean                      — полная очистка (cache + venv)
-#   make help                       — список всех команд
+#   make init                                — создать venv и поставить зависимости
+#   make list                                — список доступных сценариев
+#   make run                                 — запустить viewer (сценарий выбирается в меню)
+#   make run SCENARIO=my_test                — запустить с указанным сценарием
+#   make run SCENARIO=my_test FULLSCREEN=1   — сразу в fullscreen (для HDMI capture)
+#   make smoke                               — smoke-тесты без GUI
+#   make check                               — проверить зависимости
+#   make info                                — информация о системе
+#   make clean-cache                         — очистить кеш картинок
+#   make clean                               — полная очистка (cache + venv)
+#   make help                                — список всех команд
 
 VENV := viewer/.venv
 PY   := $(VENV)/bin/python
@@ -70,11 +71,10 @@ check: ## Проверить зависимости (без изменений)
 	@$(PY) -c "import PIL; print('Pillow:   ', PIL.__version__)" 2>/dev/null || echo "Pillow:    ✗ make init"
 	@$(PY) -c "import requests; print('requests:', requests.__version__)" 2>/dev/null || echo "requests:  ✗ make init"
 
-run: ## Запустить viewer (SCENARIO=id [POSITION=0,0] [NO_TOPMOST=1] [DEBUG=1] [LOG=1] [FULLSCREEN=1])
+run: ## Запустить viewer (опц. SCENARIO=id [POSITION=0,0] [NO_TOPMOST=1] [DEBUG=1] [LOG=1] [FULLSCREEN=1])
 	@test -x $(PY) || { echo "✗ venv не создан. Запустите: make init"; exit 1; }
-	@test -n "$(SCENARIO)" || { echo "✗ Укажите SCENARIO=..."; $(MAKE) --no-print-directory list; exit 1; }
 	@$(PY) viewer/viewer.py \
-		--scenario $(SCENARIO) \
+		$(if $(SCENARIO),--scenario $(SCENARIO)) \
 		--position $(POSITION) \
 		$(if $(NO_TOPMOST),--no-topmost) \
 		$(if $(DEBUG),--debug) \
