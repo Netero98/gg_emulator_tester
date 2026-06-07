@@ -395,7 +395,6 @@ def test_manifest():
         ok &= check("do not edit" in content.lower() or "auto-generated" in content.lower(),
                     "manifest содержит auto-generated маркер")
         # Извлечь JSON из JS: ищем "= {" и берём до соответствующего "};"
-        # Используем regex, чтобы избежать первого "=" в комментариях
         import re
         m = re.search(r'=\s*(\{[\s\S]*?\})\s*;', content)
         if m:
@@ -424,6 +423,45 @@ def test_manifest():
     return ok
 
 
+def test_relative_path_resolution():
+    """image_loader должен находить локальные фотки по относительному пути
+    из scenarios.js (например photos/... → docs/photos/...).
+
+    Это регрессионный тест: раньше register_base_dir регистрировал только
+    parent от scenarios.js (docs/js/), что ломало пути типа 'photos/...'
+    которые должны резолвиться от docs/ (grandparent)."""
+    section("Резолв относительных путей: 'photos/...' из scenarios.js")
+    import importlib
+    # Сбросить закешированные _BASE_DIRS
+    for mod_name in list(sys.modules.keys()):
+        if "image_loader" in mod_name or "scenario_loader" in mod_name:
+            del sys.modules[mod_name]
+
+    from image_loader import load_image, _BASE_DIRS
+
+    ok = True
+    # Парсим scenarios.js → регистрирует базы
+    from scenario_loader import parse_scenarios_js
+    parse_scenarios_js(str(REPO / "docs" / "js" / "scenarios.js"))
+    ok &= check(len(_BASE_DIRS) >= 2,
+                f"зарегистрировано >= 2 базы: {[str(b) for b in _BASE_DIRS]}")
+
+    # Должны быть и parent (docs/js) и grandparent (docs)
+    parent = REPO / "docs" / "js"
+    grandparent = REPO / "docs"
+    ok &= check(parent in _BASE_DIRS, f"parent зарегистрирован: {parent}")
+    ok &= check(grandparent in _BASE_DIRS, f"grandparent зарегистрирован: {grandparent}")
+
+    # Загружаем относительный путь
+    try:
+        img = load_image("photos/AKs_1_preflop.png")
+        ok &= check(img.size[0] > 0, f"'photos/...' резолвится от grandparent: {img.size[0]}x{img.size[1]}")
+    except Exception as e:
+        ok &= check(False, f"относительный путь НЕ резолвится: {e}")
+
+    return ok
+
+
 # --------- main --------- #
 
 def main():
@@ -440,6 +478,7 @@ def main():
     results.append(("scaling", test_scaling()))
     results.append(("local_files", test_local_file_loading()))
     results.append(("manifest", test_manifest()))
+    results.append(("rel_paths", test_relative_path_resolution()))
 
     print("\n" + "=" * 60)
     passed = sum(1 for _, ok in results if ok)

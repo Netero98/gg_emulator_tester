@@ -91,15 +91,26 @@ _BASE_DIRS = []
 
 def register_base_dir(path: Path):
     """Зарегистрировать базовую директорию для резолва относительных путей.
-    Вызывается из scenario_loader.parse_scenarios_js()."""
+    Вызывается из scenario_loader.parse_scenarios_js().
+
+    Регистрирует и parent, и grandparent от файла:
+      - parent — родительская директория файла (например docs/js/ для docs/js/scenarios.js)
+      - grandparent — "корень проекта" (например docs/ для docs/js/scenarios.js)
+
+    Это нужно потому, что URL'ы в scenarios.js имеют формат
+    "photos/AKs/1.png" — относительно docs/, а не docs/js/.
+    """
     p = Path(path).resolve()
     if p.is_dir():
         _BASE_DIRS.append(p)
-    else:
-        # Если передали путь к файлу — берём родителя
-        parent = p.parent.resolve()
-        if parent not in _BASE_DIRS:
-            _BASE_DIRS.append(parent)
+        return
+    # Передан путь к файлу — регистрируем parent И grandparent
+    parent = p.parent.resolve()
+    if parent not in _BASE_DIRS:
+        _BASE_DIRS.append(parent)
+    grandparent = parent.parent.resolve()
+    if grandparent != parent and grandparent not in _BASE_DIRS:
+        _BASE_DIRS.append(grandparent)
 
 
 def _resolve_relative(path: Path) -> Path | None:
