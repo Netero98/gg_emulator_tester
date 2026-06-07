@@ -104,7 +104,7 @@ GitHub Pages / CDN          GitHub Repository
 
 **Локальные фотки (`docs/photos/`):**
 1. Положите скриншоты в `docs/photos/` (можно с подпапками, например `docs/photos/AKs/1.png`)
-2. Запустите `make photos-manifest` — это просканирует папку и создаст `docs/photos.json`
+2. Запустите `make photos-manifest` — это просканирует папку и создаст `docs/photos.js`
 3. Откройте `docs/configurator.html` (можно по `file://`, без сервера)
 4. Нажмите **"📁 Из photos/"** — появятся превью всех картинок
 5. Клик на превью → URL `photos/AKs/1.png` (относительный) встанет в инпут
@@ -112,7 +112,10 @@ GitHub Pages / CDN          GitHub Repository
    - в Python viewer (`make run`)
    - в web `docs/index.html` (если хостить из `docs/`, например через GitHub Pages)
 
-Никакого сервера не нужно — конфигуратор читает `docs/photos.json` напрямую, фотки подгружает по относительным путям.
+**Почему `photos.js` а не `photos.json`?** Chrome блокирует `fetch()` между `file://` URL'ами по CORS.
+`<script src="photos.js">` таких ограничений не имеет и работает на `file://` в любом браузере.
+
+Никакого сервера не нужно — конфигуратор загружает `photos.js` через `<script>`, фотки подгружает по относительным путям.
 
 ### Шаг 3: Получите код
 
@@ -241,7 +244,7 @@ gg_emulator_tester/
 │   ├── index.html                  ← основное web-приложение
 │   ├── configurator.html           ← создание тестов
 │   ├── photos/                     ← локальные скриншоты (для сценариев)
-│   ├── photos.json                 ← manifest фоток (генерируется `make photos-manifest`)
+│   ├── photos.js                   ← manifest фоток (генерируется `make photos-manifest`)
 │   ├── css/
 │   │   └── style.css
 │   └── js/

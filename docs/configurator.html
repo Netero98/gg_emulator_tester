@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test Creator - Создание нового теста (Cloud)</title>
+    <!-- photos.js — статичный manifest с фотками из docs/photos/.
+         Загружается через <script> (НЕ fetch), потому что fetch() с
+         file:// на file:// блокируется Chrome по CORS. <script>
+         таких ограничений не имеет и работает на file://. -->
+    <script src="photos.js" defer></script>
     <style>
         * {
             margin: 0;
@@ -551,12 +556,12 @@
                     <div id="photos-gallery" class="photos-gallery" style="display: none;">
                         <div class="photos-gallery-header">
                             <span>📂 <span id="photos-dir-name">photos/</span> — <span id="photos-count">0</span> файлов</span>
-                            <button type="button" class="btn-refresh" onclick="loadPhotosManifest()" title="Перечитать docs/photos.json">🔄</button>
+                            <button type="button" class="btn-refresh" onclick="loadPhotosManifest()" title="Перечитать docs/photos.js">🔄</button>
                             <button type="button" class="btn-refresh" onclick="hidePhotosGallery()" title="Закрыть">✕</button>
                         </div>
                         <div class="photos-grid" id="photos-grid"></div>
                         <div id="photos-empty" style="color: #888; font-size: 12px; padding: 10px; display: none;">
-                            Файл <code>docs/photos.json</code> не найден. Положите картинки в
+                            Файл <code>docs/photos.js</code> не найден. Положите картинки в
                             <code>docs/photos/</code> и выполните <code>make photos-manifest</code>.
                         </div>
                     </div>
@@ -730,17 +735,20 @@
         }
 
         // ============================================================
-        //  Photos gallery — статичный manifest из docs/photos.json
+        //  Photos gallery — статичный manifest из docs/photos.js
         // ============================================================
         //
         // Подход полностью "статичный":
         //   - Картинки лежат в docs/photos/ (можно с подпапками)
-        //   - `make photos-manifest` сканирует папку → пишет docs/photos.json
-        //   - Конфигуратор fetch'ит photos.json → показывает превью
+        //   - `make photos-manifest` сканирует папку → пишет docs/photos.js,
+        //     который устанавливает window.PHOTOS_MANIFEST
+        //   - photos.js загружается через <script src="photos.js" defer> в <head>
+        //     (НЕ через fetch() — Chrome блокирует fetch() между file:// URL'ами
+        //      по CORS, а <script> таких ограничений не имеет)
         //   - Клик ставит относительный URL в инпут (например, "photos/AKs/1.png")
         //
         // Без сервера, без File API, без браузерных picker'ов.
-        // Работает на file:// (manifest рядом с конфигуратором — same directory).
+        // Работает на file:// в любом браузере.
         // URL относительный → работает и в Python viewer, и в web (если хостить из docs/).
 
         function togglePhotosGallery() {
@@ -763,22 +771,20 @@
             grid.innerHTML = '';
             empty.style.display = 'none';
 
-            fetch('photos.json', { cache: 'no-store' })
-                .then(r => {
-                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                    return r.json();
-                })
-                .then(manifest => {
-                    document.getElementById('photos-dir-name').textContent = manifest.photos_dir + '/';
-                    document.getElementById('photos-count').textContent = manifest.count;
-                    renderPhotosGallery(manifest.photos || []);
-                })
-                .catch(err => {
-                    console.warn('Не удалось загрузить photos.json:', err);
-                    grid.innerHTML = '';
-                    empty.style.display = 'block';
-                    document.getElementById('photos-count').textContent = '0';
-                });
+            // photos.js загружается через <script defer> — window.PHOTOS_MANIFEST
+            // уже доступен к моменту, когда пользователь кликает кнопку.
+            if (typeof window.PHOTOS_MANIFEST === 'undefined') {
+                console.warn('window.PHOTOS_MANIFEST не найден — photos.js не загружен?');
+                grid.innerHTML = '';
+                empty.style.display = 'block';
+                document.getElementById('photos-count').textContent = '0';
+                return;
+            }
+
+            const manifest = window.PHOTOS_MANIFEST;
+            document.getElementById('photos-dir-name').textContent = manifest.photos_dir + '/';
+            document.getElementById('photos-count').textContent = manifest.count;
+            renderPhotosGallery(manifest.photos || []);
         }
 
         function renderPhotosGallery(photos) {

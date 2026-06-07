@@ -98,7 +98,7 @@ run-debug: ## Запустить viewer с логированием всех к�
 		--debug \
 		--log-clicks
 
-photos-manifest: ## Сгенерировать docs/photos.json (список файлов из docs/photos/)
+photos-manifest: ## Сгенерировать docs/photos.js (JS manifest фоток из docs/photos/)
 	@$(PY) viewer/generate_manifest.py
 
 list: ## Показать доступные сценарии

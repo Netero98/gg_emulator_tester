@@ -358,9 +358,14 @@ def test_local_file_loading():
 
 
 def test_manifest():
-    """Проверяем что make photos-manifest генерирует корректный docs/photos.json."""
-    section("Manifest docs/photos.json")
-    from generate_manifest import scan
+    """Проверяем что make photos-manifest генерирует корректный docs/photos.js.
+
+    Используется .js (а не .json) потому что fetch() с file:// на file://
+    блокируется Chrome по CORS. <script src=photos.js> таких ограничений
+    не имеет и работает на file:// в любом браузере.
+    """
+    section("Manifest docs/photos.js (статичный JS, без CORS)")
+    from generate_manifest import scan, write_js_manifest
     import json
 
     photos_dir = REPO / "docs" / "photos"
@@ -379,18 +384,42 @@ def test_manifest():
         ok &= check("size_bytes" in sample and sample["size_bytes"] > 0,
                     f"size_bytes > 0: {sample.get('size_bytes')}")
 
-    # Проверить что manifest-файл существует
-    manifest_file = REPO / "docs" / "photos.json"
+    # Проверить что manifest-файл существует и валиден
+    manifest_file = REPO / "docs" / "photos.js"
     ok &= check(manifest_file.exists(), f"manifest существует: {manifest_file}")
     if manifest_file.exists():
-        try:
-            data = json.loads(manifest_file.read_text(encoding="utf-8"))
-            ok &= check("photos" in data and isinstance(data["photos"], list),
-                        f"manifest содержит массив photos ({len(data.get('photos', []))} элементов)")
-            ok &= check(data["count"] == len(data["photos"]),
-                        f"manifest.count == {data['count']} == len(photos)")
-        except Exception as e:
-            ok &= check(False, f"manifest — корректный JSON: {e}")
+        content = manifest_file.read_text(encoding="utf-8")
+        # Должен устанавливать window.PHOTOS_MANIFEST
+        ok &= check("window.PHOTOS_MANIFEST" in content,
+                    "manifest устанавливает window.PHOTOS_MANIFEST")
+        ok &= check("do not edit" in content.lower() or "auto-generated" in content.lower(),
+                    "manifest содержит auto-generated маркер")
+        # Извлечь JSON из JS: ищем "= {" и берём до соответствующего "};"
+        # Используем regex, чтобы избежать первого "=" в комментариях
+        import re
+        m = re.search(r'=\s*(\{[\s\S]*?\})\s*;', content)
+        if m:
+            json_str = m.group(1)
+            try:
+                data = json.loads(json_str)
+                ok &= check("photos" in data and isinstance(data["photos"], list),
+                            f"manifest содержит массив photos ({len(data.get('photos', []))} элементов)")
+                ok &= check(data["count"] == len(data["photos"]),
+                            f"manifest.count == {data['count']} == len(photos)")
+            except Exception as e:
+                ok &= check(False, f"manifest — корректный JSON: {e}")
+        else:
+            ok &= check(False, "manifest: не найдено присваивание = {...} ;")
+
+    # Симулируем загрузку: после загрузки <script> window.PHOTOS_MANIFEST должен быть доступен
+    try:
+        import re
+        m = re.search(r'=\s*(\{[\s\S]*?\})\s*;', content)
+        manifest = json.loads(m.group(1))
+        ok &= check(manifest.get("count") == 2,
+                    f"после 'загрузки' <script> window.PHOTOS_MANIFEST.count == {manifest.get('count')}")
+    except Exception as e:
+        ok &= check(False, f"manifest не парсится после загрузки: {e}")
 
     return ok
 
