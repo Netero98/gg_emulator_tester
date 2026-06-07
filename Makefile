@@ -4,6 +4,7 @@
 #   make init                       — создать venv и поставить зависимости
 #   make list                       — список доступных сценариев
 #   make run SCENARIO=my_test       — запустить viewer
+#   make run SCENARIO=my_test FULLSCREEN=1  — сразу в fullscreen (для HDMI capture)
 #   make smoke                      — smoke-тесты без GUI
 #   make check                      — проверить зависимости
 #   make info                       — информация о системе
@@ -15,12 +16,12 @@ VENV := viewer/.venv
 PY   := $(VENV)/bin/python
 PIP  := $(VENV)/bin/pip
 
-# Defaults (перекрываются через make run SCENARIO=... POSITION=... NO_TOPMOST=1 DEBUG=1 LOG=1)
+# Defaults (перекрываются через make run SCENARIO=... POSITION=... NO_TOPMOST=1 DEBUG=1 LOG=1 FULLSCREEN=1)
 POSITION ?= 0,0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help all init check run smoke test list info clean clean-cache
+.PHONY: help all init check run smoke test list info clean clean-cache verify-close run-debug
 
 help: ## Показать список команд
 	@echo "Poker Emulator Viewer — Makefile"
@@ -69,7 +70,7 @@ check: ## Проверить зависимости (без изменений)
 	@$(PY) -c "import PIL; print('Pillow:   ', PIL.__version__)" 2>/dev/null || echo "Pillow:    ✗ make init"
 	@$(PY) -c "import requests; print('requests:', requests.__version__)" 2>/dev/null || echo "requests:  ✗ make init"
 
-run: ## Запустить viewer (SCENARIO=id [POSITION=0,0] [NO_TOPMOST=1] [DEBUG=1] [LOG=1])
+run: ## Запустить viewer (SCENARIO=id [POSITION=0,0] [NO_TOPMOST=1] [DEBUG=1] [LOG=1] [FULLSCREEN=1])
 	@test -x $(PY) || { echo "✗ venv не создан. Запустите: make init"; exit 1; }
 	@test -n "$(SCENARIO)" || { echo "✗ Укажите SCENARIO=..."; $(MAKE) --no-print-directory list; exit 1; }
 	@$(PY) viewer/viewer.py \
@@ -77,11 +78,25 @@ run: ## Запустить viewer (SCENARIO=id [POSITION=0,0] [NO_TOPMOST=1] [DE
 		--position $(POSITION) \
 		$(if $(NO_TOPMOST),--no-topmost) \
 		$(if $(DEBUG),--debug) \
-		$(if $(LOG),--log-clicks)
+		$(if $(LOG),--log-clicks) \
+		$(if $(FULLSCREEN),--start-fullscreen)
 
 smoke test: ## Прогнать smoke-тесты без GUI
 	@test -x $(PY) || { echo "✗ venv не создан. Запустите: make init"; exit 1; }
 	@$(PY) viewer/test_smoke.py
+
+verify-close: ## Программно кликнуть в bet_100 (self-test) [SCENARIO=my_test]
+	@test -x $(PY) || { echo "✗ venv не создан. Запустите: make init"; exit 1; }
+	@$(PY) viewer/viewer.py --scenario $(or $(SCENARIO),my_test) --self-test
+
+run-debug: ## Запустить viewer с логированием всех кликов в файл (для отладки)
+	@test -x $(PY) || { echo "✗ venv не создан. Запустите: make init"; exit 1; }
+	@test -n "$(SCENARIO)" || { echo "✗ Укажите SCENARIO=..."; $(MAKE) --no-print-directory list; exit 1; }
+	@$(PY) viewer/viewer.py \
+		--scenario $(SCENARIO) \
+		--position $(POSITION) \
+		--debug \
+		--log-clicks
 
 list: ## Показать доступные сценарии
 	@test -x $(PY) || { echo "✗ venv не создан. Запустите: make init"; exit 1; }

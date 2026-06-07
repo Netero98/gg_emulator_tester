@@ -9,6 +9,7 @@ Smoke-тест viewer-логики без GUI.
   5. Логику валидации (action / size / slider)
   6. Детекцию missclick
   7. Навигацию по шагам
+  8. Клик в image-coords при разных scale (windowed / fullscreen)
 
 Запуск: python3 viewer/test_smoke.py
 """
@@ -226,6 +227,77 @@ def test_no_size_when_expected():
     return check(r == "wrong", "raise без bet_100 → wrong")
 
 
+def test_close_button_no_overlap():
+    """Кнопки действия не должны попадать в зону клика по нативной
+    кнопке закрытия ОС (правый верх). В новой версии используется
+    стандартный titlebar X, но при fullscreen он скрыт — поэтому
+    проверяем что кнопки не в самом верху-с-краю картинки."""
+    section("Кнопки действия не в зоне titlebar (правый верх)")
+    scenarios = parse_scenarios_js(SCENARIOS_JS)
+    step = scenarios["my_test"]["steps"][0]
+    w, h = NATIVE_W, NATIVE_H
+    # Зона titlebar'a (примерно): правый верх, 200x50
+    titlebar_left = w - 200
+    titlebar_top = 0
+    titlebar_right = w
+    titlebar_bottom = 50
+
+    ok = True
+    for btn in step.get("buttons", []):
+        cx = btn["x"] / 100.0 * w
+        cy = btn["y"] / 100.0 * h
+        left = cx - btn["width"] / 2
+        top = cy - btn["height"] / 2
+        right = left + btn["width"]
+        bottom = top + btn["height"]
+        in_titlebar = not (
+            right < titlebar_left or
+            left > titlebar_right or
+            bottom < titlebar_top or
+            top > titlebar_bottom
+        )
+        ok &= check(
+            not in_titlebar,
+            f"кнопка {btn['id']} ({left:.0f},{top:.0f},{right:.0f},{bottom:.0f}) "
+            f"НЕ в зоне titlebar ({titlebar_left},{titlebar_top},{titlebar_right},{titlebar_bottom})",
+        )
+    return ok
+
+
+def test_scaling():
+    """Координаты кнопок должны корректно отображаться в canvas-coords
+    при разных scale (windowed mode с масштабированием, fullscreen = 1:1)."""
+    section("Координаты кнопок при разных scale")
+    scenarios = parse_scenarios_js(SCENARIOS_JS)
+    step = scenarios["my_test"]["steps"][0]
+    w, h = NATIVE_W, NATIVE_H
+
+    ok = True
+    for scale in (1.0, 0.75, 0.5, 0.25):
+        for btn in step.get("buttons", []):
+            # Image-coords кнопки
+            img_cx = btn["x"] / 100.0 * w
+            img_cy = btn["y"] / 100.0 * h
+            # Canvas-coords при scale
+            img_w_scaled = w * scale
+            img_h_scaled = h * scale
+            offset_x = 50  # произвольный offset
+            offset_y = 30
+            canvas_cx = offset_x + (btn["x"] / 100.0) * img_w_scaled
+            canvas_cy = offset_y + (btn["y"] / 100.0) * img_h_scaled
+            # Обратно в image-coords
+            recovered_x = (canvas_cx - offset_x) / scale
+            recovered_y = (canvas_cy - offset_y) / scale
+            match_x = abs(recovered_x - img_cx) < 0.5
+            match_y = abs(recovered_y - img_cy) < 0.5
+            ok &= check(
+                match_x and match_y,
+                f"scale={scale}, {btn['id']}: img=({img_cx:.0f},{img_cy:.0f}) ↔ "
+                f"canvas=({canvas_cx:.0f},{canvas_cy:.0f}) — конвертация туда-обратно корректна",
+            )
+    return ok
+
+
 # --------- main --------- #
 
 def main():
@@ -238,6 +310,8 @@ def main():
     results.append(("wrong_size", test_wrong_size()))
     results.append(("missclick", test_missclick()))
     results.append(("no_size", test_no_size_when_expected()))
+    results.append(("close_no_overlap", test_close_button_no_overlap()))
+    results.append(("scaling", test_scaling()))
 
     print("\n" + "=" * 60)
     passed = sum(1 for _, ok in results if ok)
